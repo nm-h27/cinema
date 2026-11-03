@@ -1,0 +1,2820 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Galaxy Royal Cinema 3D — Multiplayer Realtime</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--primary:#e50914;--accent:#f5c518;--success:#10b981;--info:#3b82f6;--bg-panel:#151520;--bg-card:#1e1e2d;--bg-elevated:#27273a;--text:#f4f4f8;--muted:#9ca3af;--border:rgba(255,255,255,0.1)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:#000;color:var(--text);user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(circle at 50% 50%,transparent 35%,rgba(0,0,0,.55) 100%)}
+#start-screen{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(1000px 600px at 50% 20%,#2a0a1c 0%,#0b0b10 60%),#0b0b10;text-align:center;padding:20px;transition:opacity .5s;overflow-y:auto}
+#start-screen.hide{opacity:0;pointer-events:none}
+#start-screen .logo{font-size:40px;font-weight:900;letter-spacing:2px;margin-bottom:4px}
+#start-screen .logo span{color:var(--accent)}
+#start-screen .subtitle{color:var(--muted);font-size:13px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:18px}
+.creator-card{background:rgba(24,24,38,.92);border:1px solid var(--border);border-radius:18px;padding:18px 22px;width:100%;max-width:520px;text-align:left;margin-bottom:18px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.creator-card h3{font-size:14px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.creator-row{margin-bottom:12px}
+.creator-row:last-child{margin-bottom:0}
+.creator-row label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:700}
+.creator-input-group{display:flex;gap:8px}
+.creator-input{flex:1;padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.creator-input:focus{border-color:var(--primary)}
+.swatch-list{display:flex;gap:8px;flex-wrap:wrap}
+.color-swatch{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:.15s}
+.color-swatch.active{border-color:#fff;transform:scale(1.15);box-shadow:0 0 10px rgba(255,255,255,.5)}
+.hat-list{display:flex;gap:6px;flex-wrap:wrap}
+.hat-chip{padding:6px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.hat-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+#start-screen .cta{padding:14px 40px;font-size:15px;font-weight:800;background:var(--primary);color:#fff;border:none;border-radius:14px;cursor:pointer;transition:.2s;letter-spacing:1px;box-shadow:0 12px 40px rgba(229,9,20,.45);font-family:inherit}
+#start-screen .cta:hover{background:#ff1e29;transform:translateY(-2px)}
+#start-screen .controls-info{margin-top:20px;display:flex;gap:18px;flex-wrap:wrap;justify-content:center;color:var(--muted);font-size:12px}
+.key{display:inline-block;min-width:24px;padding:2px 7px;margin:0 2px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;font-family:monospace;font-size:11.5px;color:var(--text);font-weight:700}
+#lock-hint{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:90;padding:10px 22px;background:rgba(20,20,30,.85);border:1px solid var(--border);border-radius:30px;font-size:13px;color:var(--text);backdrop-filter:blur(10px);display:none;pointer-events:none}
+#lock-hint.show{display:block}
+#crosshair{position:fixed;left:50%;top:50%;width:6px;height:6px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.75);z-index:40;box-shadow:0 0 0 2px rgba(0,0,0,.4);pointer-events:none;display:none}
+#crosshair.show{display:block}
+#prompt{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:80;padding:12px 24px;background:rgba(20,20,30,.92);border:1px solid rgba(229,9,20,.5);border-radius:12px;font-size:14px;backdrop-filter:blur(12px);display:none;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#prompt.show{display:flex}
+#prompt .key-badge{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+#prompt.info{border-color:rgba(59,130,246,.5)}#prompt.info .key-badge{background:var(--info)}
+#prompt.danger{border-color:rgba(239,68,68,.6)}#prompt.danger .key-badge{background:var(--muted)}
+#status-hud{position:fixed;top:20px;left:20px;z-index:30;background:rgba(15,15,22,.86);border:1px solid var(--border);border-radius:14px;padding:12px 16px;backdrop-filter:blur(12px);font-size:12px;min-width:280px;max-width:355px}
+#status-hud .obj{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
+#status-hud .obj-dot{display:inline-flex;align-items:center;gap:6px}
+#status-hud .obj-dot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--primary);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#status-hud .obj-text{font-size:13px;font-weight:700;color:var(--text);letter-spacing:0;text-transform:none;line-height:1.35}
+#nav-guide{margin-top:8px;padding:7px 10px;border-radius:9px;background:rgba(245,197,24,.12);border:1px solid rgba(245,197,24,.35);color:#fde68a;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+#nav-guide .nav-arrow{font-size:16px;line-height:1;display:inline-block;min-width:20px;text-align:center}
+#status-hud .chips{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.chip{padding:4px 10px;border-radius:999px;font-size:11px;background:var(--bg-elevated);color:var(--muted);border:1px solid var(--border);font-weight:600}
+.chip.ok{background:rgba(16,185,129,.14);color:#6ee7b7;border-color:rgba(16,185,129,.4)}
+.chip.warn{background:rgba(245,197,24,.14);color:#fbbf24;border-color:rgba(245,197,24,.4)}
+.chip.live{background:rgba(59,130,246,.16);color:#93c5fd;border-color:rgba(59,130,246,.45)}
+#online-panel{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);max-height:92px;overflow-y:auto}
+.online-item{display:flex;justify-content:space-between;align-items:center;padding:2px 0;color:var(--text)}
+.online-item .seat-tag{font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(229,9,20,.2);color:#fca5a5;border:1px solid rgba(229,9,20,.35)}
+#controls-hint{position:fixed;top:20px;right:20px;z-index:30;background:rgba(15,15,22,.82);border:1px solid var(--border);border-radius:12px;padding:10px 14px;backdrop-filter:blur(12px);font-size:11.5px;color:var(--muted);line-height:1.65;min-width:185px}
+#controls-hint kbd{display:inline-block;min-width:20px;padding:1px 6px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;font-family:monospace;font-size:10.5px;color:var(--text);font-weight:700;margin-right:4px}
+#controls-hint button{display:block;width:100%;margin-top:6px;padding:7px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.15s}
+#controls-hint button:hover{background:var(--primary);border-color:var(--primary)}
+#video-stop-btn{background:var(--primary)!important;border-color:var(--primary)!important;color:#fff!important}
+.emote-bar{display:flex;gap:4px;margin-top:6px}
+.emote-btn{flex:1;padding:5px 0!important;margin-top:0!important;font-size:13px!important}
+.modal-backdrop{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.8);backdrop-filter:blur(8px)}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:20px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.7);overflow:hidden}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.modal-head h2{font-size:20px;letter-spacing:-.3px}
+.modal-sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+.modal-close{width:34px;height:34px;border-radius:9px;border:none;background:var(--bg-elevated);color:var(--text);font-size:20px;line-height:1;cursor:pointer;flex-shrink:0;transition:.15s;font-family:inherit}
+.modal-close:hover{background:var(--primary)}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-shrink:0;background:rgba(0,0,0,.2)}
+.foot-total{font-size:14px;color:var(--muted)}
+.foot-total strong{color:var(--accent);font-size:18px;margin-left:6px}
+.foot-actions{display:flex;gap:8px}
+.form-section{margin-bottom:22px}.form-section:last-child{margin-bottom:0}
+.form-label{font-size:11.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.form-label .num{width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px}
+.policy-banner{padding:10px 14px;border-radius:10px;background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.35);color:#fecaca;font-size:12px;margin-bottom:12px;line-height:1.45}
+.movie-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.movie-chip{padding:12px;border-radius:12px;cursor:pointer;background:var(--bg-card);border:1px solid var(--border);transition:.18s;display:flex;gap:10px;align-items:center;text-align:left;color:var(--text);font-family:inherit}
+.movie-chip:hover{border-color:rgba(255,255,255,.25);transform:translateY(-1px)}
+.movie-chip.active{border-color:var(--primary);background:rgba(229,9,20,.1);box-shadow:0 4px 18px rgba(229,9,20,.25)}
+.movie-chip .mini-poster{width:36px;height:50px;border-radius:6px;flex-shrink:0}
+.movie-chip .movie-info{flex:1;min-width:0}
+.movie-chip .movie-title{font-size:12.5px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.movie-chip .movie-meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+.time-chips{display:flex;flex-wrap:wrap;gap:8px}
+.time-chip{padding:9px 14px;border-radius:10px;cursor:pointer;background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;transition:.18s;text-align:left}
+.time-chip strong{font-size:14px;display:block}
+.time-chip span{color:var(--muted);font-size:10.5px}
+.time-chip:hover{border-color:var(--primary)}
+.time-chip.active{background:var(--primary);border-color:var(--primary);box-shadow:0 4px 16px rgba(229,9,20,.4)}
+.time-chip.active span{color:rgba(255,255,255,.85)}
+.seat-picker{background:rgba(0,0,0,.3);border-radius:12px;padding:16px 12px;overflow-x:auto}
+.sp-screen{height:20px;margin:0 10% 20px;border-radius:4px 4px 40% 40%/4px 4px 100% 100%;background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.04));text-align:center;color:#10101a;font-size:9px;font-weight:900;letter-spacing:4px;line-height:16px}
+.sp-row{display:flex;gap:5px;justify-content:center;align-items:center;margin-bottom:5px}
+.sp-label{width:16px;flex-shrink:0;text-align:center;font-size:10px;color:var(--muted);font-weight:700}
+.sp-seat{width:22px;height:22px;flex-shrink:0;border-radius:6px;border:none;background:#2f2f45;cursor:pointer;transition:.15s;position:relative}
+.sp-seat:hover:not(.occupied):not(.player-locked){transform:scale(1.2);background:#48486b}
+.sp-seat.vip{background:#3d3016;box-shadow:inset 0 0 0 1px rgba(245,197,24,.45)}
+.sp-seat.vip:hover:not(.occupied):not(.player-locked){background:#57431c}
+.sp-seat.occupied{background:#191922;cursor:not-allowed;opacity:.55}
+.sp-seat.player-locked{background:#1e3a8a;box-shadow:0 0 0 1px #60a5fa;cursor:not-allowed;opacity:.9}
+.sp-seat.selected{background:var(--primary);box-shadow:0 0 10px rgba(229,9,20,.8);transform:scale(1.15)}
+.sp-gap{width:18px;flex-shrink:0}
+.seat-legend{display:flex;gap:14px;margin-top:14px;padding-left:24px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.seat-legend span{display:flex;align-items:center;gap:6px}
+.seat-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.snack-grid-m{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.snack-item{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.snack-item .snack-head{display:flex;align-items:center;gap:10px}
+.snack-item .icon{font-size:26px}
+.snack-item h4{font-size:13px}
+.snack-item .muted{font-size:11px;color:var(--muted);margin-top:2px}
+.snack-item .price{color:var(--accent);font-weight:700;font-size:13px}
+.snack-item .qty-ctrl{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:6px;border-top:1px solid var(--border)}
+.qty-ctrl .btn-qty{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--bg-elevated);color:#fff;font-size:14px;line-height:1;cursor:pointer;transition:.15s;font-family:inherit}
+.qty-ctrl .btn-qty:hover{background:var(--primary);border-color:var(--primary)}
+.qty-ctrl .count{font-weight:800;font-size:13px;min-width:20px;text-align:center}
+.btn-primary,.btn-ghost{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:.18s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover:not(:disabled){background:#ff1e29;box-shadow:0 6px 20px rgba(229,9,20,.4)}
+.btn-primary:disabled{background:var(--bg-elevated);color:#555;cursor:not-allowed}
+.btn-ghost{background:var(--bg-elevated);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:#34344c}
+#toast{position:fixed;bottom:30px;left:50%;transform:translate(-50%,20px);z-index:250;padding:12px 22px;background:rgba(30,30,45,.96);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.3s;box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#seated-panel{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:85;display:none;padding:14px 26px;background:rgba(15,15,22,.95);border:1px solid rgba(245,197,24,.4);border-radius:14px;backdrop-filter:blur(12px);text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#seated-panel.show{display:block}
+#seated-panel .title{font-size:15px;font-weight:800;color:var(--accent);margin-bottom:4px}
+#seated-panel .sub{font-size:12px;color:var(--muted)}
+#seated-panel .stand-btn{margin-top:10px;padding:8px 18px;border-radius:8px;background:var(--bg-elevated);border:1px solid var(--border);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+#seated-panel .stand-btn:hover{background:var(--primary);border-color:var(--primary)}
+#mobile-warn{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;background:#0b0b10;padding:30px;text-align:center}
+#mobile-warn.show{display:flex}
+#mobile-warn div{max-width:380px}
+#mobile-warn h2{color:var(--primary);margin-bottom:14px}
+#mobile-warn p{color:var(--muted);line-height:1.7}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#101018}
+::-webkit-scrollbar-thumb{background:#2c2c3e;border-radius:4px}
+@media(max-width:700px){#controls-hint,#status-hud{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vignette"></div>
+
+<div id="start-screen">
+  <div class="logo">GALAXY <span>ROYAL</span></div>
+  <div class="subtitle">Cinema 3D · Multiplayer Thời Gian Thực</div>
+
+  <div class="creator-card">
+    <h3>
+      <span>👤 Tạo nhân vật & Kết nối phòng trực tuyến</span>
+      <span style="font-size:11px;color:#6ee7b7;font-weight:600">● Chống trùng & khai khống ghế</span>
+    </h3>
+    <div class="creator-row">
+      <label>Tên nhân vật của bạn & Mã sảnh chung (Room ID)</label>
+      <div class="creator-input-group">
+        <input type="text" id="char-name-input" class="creator-input" maxlength="18" placeholder="Nhập tên nhân vật..." value="" />
+        <input type="text" id="room-code-input" class="creator-input" style="max-width:155px" maxlength="16" value="GALAXY-VN" title="Mã sảnh chung để nhiều người cùng vào" />
+      </div>
+    </div>
+    <div class="creator-row">
+      <label>Màu trang phục nhân vật</label>
+      <div class="swatch-list" id="jacket-swatches">
+        <button type="button" class="color-swatch active" data-color="#e50914" style="background:#e50914"></button>
+        <button type="button" class="color-swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
+        <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981"></button>
+        <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b"></button>
+        <button type="button" class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+        <button type="button" class="color-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+        <button type="button" class="color-swatch" data-color="#06b6d4" style="background:#06b6d4"></button>
+        <button type="button" class="color-swatch" data-color="#f4f4f8" style="background:#f4f4f8"></button>
+      </div>
+    </div>
+    <div class="creator-row">
+      <label>Phụ kiện đầu (Kính 3D / Mũ / Tai nghe / Vương miện)</label>
+      <div class="hat-list" id="hat-choices">
+        <button type="button" class="hat-chip active" data-hat="glasses3d">🥽 Kính 3D Rạp</button>
+        <button type="button" class="hat-chip" data-hat="cap">🧢 Mũ lưỡi trai</button>
+        <button type="button" class="hat-chip" data-hat="headset">🎧 Tai nghe RGB</button>
+        <button type="button" class="hat-chip" data-hat="crown">👑 Vương miện VIP</button>
+        <button type="button" class="hat-chip" data-hat="none">✨ Không đội</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="cta" id="start-btn">Vào rạp</button>
+  <div class="controls-info">
+    <div><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> di chuyển</div>
+    <div><span class="key">E</span> tương tác</div>
+    <div><span class="key">V</span> góc nhìn 1/3 (xem nhân vật)</div>
+    <div><span class="key">L</span> đèn chiếu</div>
+    <div><span class="key">Shift</span> chạy</div>
+  </div>
+</div>
+
+<div id="crosshair"></div>
+<div id="status-hud">
+  <div class="obj">
+    <span class="obj-dot">Mục tiêu</span>
+    <span id="online-badge" style="color:#6ee7b7;font-weight:700">🟢 1 Online</span>
+  </div>
+  <div class="obj-text" id="obj-text">Mua vé xem phim</div>
+  <div id="nav-guide">
+    <span class="nav-arrow" id="nav-arrow">⬅️</span>
+    <span id="nav-text">Đi theo vạch sáng tới Quầy vé</span>
+  </div>
+  <div class="chips">
+    <span class="chip" id="chip-ticket">🎫 Chưa có vé</span>
+    <span class="chip" id="chip-check">⏳ Chưa soát</span>
+    <span class="chip" id="chip-snack">🍿 Chưa mua</span>
+    <span class="chip" id="chip-room">🏛️ Sảnh chính</span>
+  </div>
+  <div id="online-panel"></div>
+</div>
+
+<div id="controls-hint">
+  <div><kbd>WASD</kbd> Di chuyển · <kbd>Shift</kbd> Chạy</div>
+  <div><kbd>E</kbd> Tương tác · <kbd>V</kbd> Góc nhìn 3D</div>
+  <div><kbd>L</kbd> Đèn phòng · <kbd>1-4</kbd> Cảm xúc</div>
+  <div class="emote-bar">
+    <button class="emote-btn" data-emote="👏" title="Vỗ tay (Phím 1)">👏</button>
+    <button class="emote-btn" data-emote="😂" title="Cười lớn (Phím 2)">😂</button>
+    <button class="emote-btn" data-emote="😮" title="Trầm trồ (Phím 3)">😮</button>
+    <button class="emote-btn" data-emote="❤️" title="Yêu thích (Phím 4)">❤️</button>
+  </div>
+  <button id="cam-toggle-btn">🎥 Góc nhìn: Thứ nhất (V)</button>
+  <button id="light-toggle-btn">💡 Tắt đèn / Chiếu phim</button>
+  <button id="video-btn">🎬 Tải phim lên</button>
+  <button id="video-stop-btn" style="display:none">⏹ Tắt video</button>
+</div>
+
+<input type="file" id="video-input" accept="video/*" style="display:none" />
+<div id="lock-hint">Nhấp vào màn hình để nhìn quanh</div>
+<div id="prompt"><div class="key-badge">E</div><span id="prompt-text">Mua vé</span></div>
+
+<div id="seated-panel">
+  <div class="title" id="seated-title">Đang xem phim</div>
+  <div class="sub">Nhấn E để đứng dậy · V đổi góc nhìn · A/D nghiêng người · 1-4 thả cảm xúc</div>
+  <button class="stand-btn" id="stand-btn">Đứng dậy (E)</button>
+</div>
+
+<div class="modal-backdrop" id="ticket-modal">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-head">
+      <div><h2>🎫 Mua vé xem phim định danh</h2><p class="modal-sub">Liên kết chặt chẽ 1 Nhân vật = 1 Chỗ ngồi duy nhất (Chống trùng chỗ & khai khống ghế)</p></div>
+      <button class="modal-close" data-close="ticket-modal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="policy-banner">
+        🛡️ <strong>Quy định chống khai khống & trùng ghế:</strong> Mỗi nhân vật chỉ được sở hữu <strong>đúng 1 chỗ ngồi định danh</strong> gắn với ID tài khoản theo thời gian thực. Nếu bạn đổi sang ghế mới, ghế cũ sẽ tự động mở khóa cho người khác. Ghế người chơi khác đã đặt sẽ khóa màu xanh dương.
+      </div>
+      <div class="form-section"><div class="form-label"><span class="num">1</span>Chọn phim</div><div class="movie-chips" id="tm-movies"></div></div>
+      <div class="form-section" id="tm-times-wrap" style="display:none"><div class="form-label"><span class="num">2</span>Chọn suất chiếu & phòng</div><div class="time-chips" id="tm-times"></div></div>
+      <div class="form-section" id="tm-seats-wrap" style="display:none">
+        <div class="form-label"><span class="num">3</span>Chọn 1 ghế định danh duy nhất cho nhân vật của bạn</div>
+        <div class="seat-picker">
+          <div class="sp-screen">MÀN HÌNH</div>
+          <div id="tm-seats"></div>
+          <div class="seat-legend">
+            <span><i style="background:#2f2f45"></i>Thường</span>
+            <span><i style="background:#3d3016;box-shadow:inset 0 0 0 1px rgba(245,197,24,.6)"></i>VIP</span>
+            <span><i style="background:var(--primary)"></i>Ghế của bạn</span>
+            <span><i style="background:#1e3a8a;box-shadow:0 0 0 1px #60a5fa"></i>Người chơi khác đã giữ</span>
+            <span><i style="background:#191922"></i>Đã bán</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="foot-total">Tổng cộng: <strong id="tm-total">0₫</strong></div>
+      <div class="foot-actions">
+        <button class="btn-ghost" data-close="ticket-modal">Huỷ</button>
+        <button class="btn-primary" id="tm-confirm" disabled>Xác nhận mua</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="snack-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-head">
+      <div><h2>🍿 Quầy bắp nước</h2><p class="modal-sub">Chọn đồ ăn thức uống cho buổi phim</p></div>
+      <button class="modal-close" data-close="snack-modal">×</button>
+    </div>
+    <div class="modal-body"><div class="snack-grid-m" id="snack-grid-m"></div></div>
+    <div class="modal-foot">
+      <div class="foot-total">Tổng cộng: <strong id="sm-total">0₫</strong></div>
+      <div class="foot-actions">
+        <button class="btn-ghost" data-close="snack-modal">Huỷ</button>
+        <button class="btn-primary" id="sm-confirm">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="mobile-warn"><div><h2>📵 Cần máy tính</h2><p>Galaxy Royal Cinema 3D cần bàn phím và chuột. Vui lòng mở trên máy tính.</p></div></div>
+
+<script>
+/* ========== CONFIG (Chống khai khống: maxSeats = 1 ghế định danh / 1 nhân vật) ========== */
+const CFG = {
+  eyeHeight: 1.72,
+  seatEyeHeight: 1.52,
+  walkSpeed: 4.6,
+  runSpeed: 8.6,
+  playerRadius: 0.34,
+  mouseSensitivity: 0.0022,
+  interactionRadius: 2.9,
+  seatRadius: 1.7,
+  maxSeats: 1, // Bắt buộc 1 nhân vật = 1 ghế duy nhất (không được khai khống chỗ ngồi)
+  tierPerRow: 0.36,
+  baseTierOffset: 0.32,
+  leanSpeed: 0.28,
+  swaySpeed: 0.0018
+};
+const ROWS = 10, COLS = 14, ROW_LETTERS = "ABCDEFGHIJ".split(""), AISLE_AFTER = 6;
+const TOP_TIER_Y = CFG.baseTierOffset + (ROWS - 1) * CFG.tierPerRow;
+
+const MOVIES = [
+  {id:"m1",title:"Hành Tinh Đỏ",genre:"Khoa học viễn tưởng",duration:128,age:"T16",score:8.6,c1:"#e50914",c2:"#2a0a3a"},
+  {id:"m2",title:"Bóng Đêm Sài Gòn",genre:"Hành động / Tội phạm",duration:115,age:"T18",score:8.1,c1:"#3b82f6",c2:"#0b1030"},
+  {id:"m3",title:"Mùa Hạ Cuối",genre:"Tình cảm / Học đường",duration:102,age:"P",score:7.9,c1:"#f59e0b",c2:"#3a1a05"},
+  {id:"m4",title:"Tiếng Gọi Rừng Sâu",genre:"Phiêu lưu / Gia đình",duration:96,age:"P",score:8.3,c1:"#10b981",c2:"#04291f"},
+  {id:"m5",title:"Ảo Ảnh",genre:"Kinh dị / Tâm lý",duration:108,age:"T18",score:7.6,c1:"#8b5cf6",c2:"#1a0a2e"},
+  {id:"m6",title:"Vũ Khúc Sài Thành",genre:"Hài / Âm nhạc",duration:120,age:"T13",score:8.0,c1:"#ec4899",c2:"#2e0a20"}
+];
+
+const HALLS = [
+  { index: 0, name: "Phòng 1 · 2D",          short: "Phòng 1", x: 0,   priceAdd: 0,     accent: "#e50914" },
+  { index: 1, name: "Phòng 2 · 3D",          short: "Phòng 2", x: -24, priceAdd: 20000, accent: "#3b82f6" },
+  { index: 2, name: "Phòng 3 · IMAX",        short: "Phòng 3", x: 24,  priceAdd: 40000, accent: "#f59e0b" },
+  { index: 3, name: "Phòng 4 · 4DX",         short: "Phòng 4", x: -48, priceAdd: 60000, accent: "#10b981" },
+  { index: 4, name: "Phòng 5 · Dolby Atmos", short: "Phòng 5", x: 48,  priceAdd: 50000, accent: "#8b5cf6" },
+  { index: 5, name: "Phòng 6 · Gold Class",  short: "Phòng 6", x: 72,  priceAdd: 80000, accent: "#ec4899" }
+];
+
+const SNACKS = [
+  {id:"s1",name:"Bắp rang bơ (L)",price:65000,icon:"🍿",desc:"Bơ tỏi thơm lừng"},
+  {id:"s2",name:"Bắp caramel (L)",price:75000,icon:"🍿",desc:"Ngọt giòn khó cưỡng"},
+  {id:"s3",name:"Pepsi (L)",price:35000,icon:"🥤",desc:"Đá đầy, sảng khoái"},
+  {id:"s4",name:"Trà đào cam sả",price:45000,icon:"🧋",desc:"Thanh mát, thơm sả"},
+  {id:"s5",name:"Combo Couple",price:159000,icon:"🎟️",desc:"2 bắp lớn + 2 nước"},
+  {id:"s6",name:"Nachos phô mai",price:59000,icon:"🧀",desc:"Giòn rụm, sốt đậm đà"}
+];
+
+/* ========== IDENTITY & ANTI-CHEAT SEAT REGISTRY ========== */
+const LOCAL_PLAYER_ID = "p_" + Math.random().toString(36).slice(2, 10) + "_" + (Date.now() % 10000);
+const profile = {
+  id: LOCAL_PLAYER_ID,
+  name: "Khán giả #" + Math.floor(100 + Math.random() * 899),
+  color: "#e50914",
+  hat: "glasses3d",
+  roomCode: "GALAXY-VN"
+};
+
+/* Tạo chữ ký xác thực vé (chống khai khống hoặc sửa vé giả) */
+function signSeatToken(playerId, hallIdx, seatCode, ts){
+  const raw = `${playerId}|HALL:${hallIdx}|SEAT:${seatCode}|TS:${ts}|ROYAL_SECRET_2026`;
+  let h = 2166136261;
+  for(let i = 0; i < raw.length; i++){
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return "TK_" + (h >>> 0).toString(16).toUpperCase();
+}
+
+/* Sổ đăng ký ghế thời gian thực: key = `${hallIdx}:${seatId}` -> { ownerId, ownerName, hallIdx, seatId, movieTitle, showtime, token, ts, physicallySeated } */
+const seatRegistry = new Map();
+
+function getRegistryKey(hallIdx, sId){
+  return `${hallIdx}:${sId}`;
+}
+
+/* Kiểm tra ghế đã bị người chơi khác khóa chưa */
+function getSeatLockOwner(hallIdx, sId){
+  const rec = seatRegistry.get(getRegistryKey(hallIdx, sId));
+  if(!rec) return null;
+  return rec;
+}
+
+/* Đăng ký độc quyền 1 ghế cho 1 playerId (xóa mọi ghế cũ của playerId đó để cấm khai khống nhiều ghế) */
+function claimExclusiveSeat(ownerId, ownerName, hallIdx, sId, movieTitle, showtimeStr, token, ts, physicallySeated = false){
+  const key = getRegistryKey(hallIdx, sId);
+  const existing = seatRegistry.get(key);
+  // Nếu ghế đã thuộc về người chơi khác có timestamp sớm hơn -> từ chối
+  if(existing && existing.ownerId !== ownerId && existing.ts <= ts){
+    return { ok: false, reason: `Ghế ${sId} (${HALLS[hallIdx].short}) đã thuộc về ${existing.ownerName}!` };
+  }
+  // Xóa toàn bộ ghế cũ mà ownerId này từng giữ trước đó (chống đầu cơ / khai khống nhiều ghế)
+  for(const [k, v] of seatRegistry.entries()){
+    if(v.ownerId === ownerId && k !== key){
+      seatRegistry.delete(k);
+    }
+  }
+  seatRegistry.set(key, {
+    ownerId,
+    ownerName,
+    hallIdx,
+    seatId: sId,
+    movieTitle,
+    showtime: showtimeStr,
+    token,
+    ts,
+    physicallySeated: Boolean(physicallySeated)
+  });
+  return { ok: true };
+}
+
+/* Xác thực nghiêm ngặt quyền ngồi vào ghế */
+function verifyStrictSeatAccess(playerId, hallIdx, sId, ticketObj){
+  if(!ticketObj || !ticketObj.token) return { ok: false, msg: "🚫 Vé không hợp lệ hoặc chưa đăng ký!" };
+  if(ticketObj.showtime.hallIdx !== hallIdx) return { ok: false, msg: `🚫 Sai phòng! Vé của bạn ở ${ticketObj.showtime.hall}` };
+  const mySeat = ticketObj.seats[0];
+  if(!mySeat || mySeat.id !== sId) return { ok: false, msg: `🚫 Ghế ${sId} không phải ghế trên vé của bạn (${mySeat ? mySeat.id : "?"})!` };
+
+  const expectedToken = signSeatToken(playerId, hallIdx, sId, ticketObj.ts);
+  if(ticketObj.token !== expectedToken) return { ok: false, msg: "🚫 Phát hiện khai khống chữ ký vé!" };
+
+  const reg = seatRegistry.get(getRegistryKey(hallIdx, sId));
+  if(!reg || reg.ownerId !== playerId) return { ok: false, msg: `🚫 Ghế ${sId} đang thuộc sở hữu của người xem khác!` };
+  return { ok: true };
+}
+
+/* ========== STATE ========== */
+const state = {
+  ticket: null,
+  ticketChecked: false,
+  snacks: {},
+  snacksPurchased: false,
+  modalOpen: false,
+  seated: null,
+  isScreening: false,
+  currentHallIdx: 0,
+  thirdPerson: false,
+  emote: null,
+  emoteUntil: 0
+};
+const draft = { movie: null, showtime: null, seats: [], occupied: new Set(), snacks: {} };
+
+/* ========== DOM CACHE & UTILS ========== */
+const $ = (s) => document.querySelector(s);
+const DOM = {
+  startScreen: $("#start-screen"),
+  charNameInput: $("#char-name-input"),
+  roomCodeInput: $("#room-code-input"),
+  lockHint: $("#lock-hint"),
+  crosshair: $("#crosshair"),
+  prompt: $("#prompt"),
+  promptText: $("#prompt-text"),
+  chipTicket: $("#chip-ticket"),
+  chipCheck: $("#chip-check"),
+  chipSnack: $("#chip-snack"),
+  chipRoom: $("#chip-room"),
+  objText: $("#obj-text"),
+  onlineBadge: $("#online-badge"),
+  onlinePanel: $("#online-panel"),
+  navGuide: $("#nav-guide"),
+  navArrow: $("#nav-arrow"),
+  navText: $("#nav-text"),
+  seatedPanel: $("#seated-panel"),
+  seatedTitle: $("#seated-title"),
+  seatedSub: $("#seated-panel .sub"),
+  camToggleBtn: $("#cam-toggle-btn"),
+  lightToggleBtn: $("#light-toggle-btn"),
+  videoBtn: $("#video-btn"),
+  videoStopBtn: $("#video-stop-btn"),
+  toast: $("#toast")
+};
+DOM.charNameInput.value = profile.name;
+
+const money = (n) => n.toLocaleString("vi-VN") + "₫";
+function hashCode(str){let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;return h}
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+function seatId(r,c){return ROW_LETTERS[r]+(c+1)}
+function seatPrice(r){return r<3?70000:r<7?90000:110000}
+
+const SEAT_SPACING = 1.05, SEAT_AISLE = 1.6, SEAT_TOTAL_W = COLS * SEAT_SPACING + SEAT_AISLE;
+function seatLocalPos(r, c){
+  const x = -SEAT_TOTAL_W/2 + SEAT_SPACING/2 + c*SEAT_SPACING + (c > AISLE_AFTER ? SEAT_AISLE : 0);
+  const z = -6 + r * 1.15;
+  const y = CFG.baseTierOffset + r * CFG.tierPerRow;
+  return {x, y, z};
+}
+function seatWorld(r, c, hallIdx = 0){
+  const loc = seatLocalPos(r, c);
+  const hx = HALLS[hallIdx] ? HALLS[hallIdx].x : 0;
+  return { x: loc.x + hx, y: loc.y, z: loc.z };
+}
+function parseSeatRC(sId){
+  const r = ROW_LETTERS.indexOf(sId[0]);
+  const c = parseInt(sId.slice(1), 10) - 1;
+  return { r: Math.max(0, r), c: Math.max(0, c) };
+}
+
+function getShowtimes(movie){
+  const base = ["10:15","12:30","14:45","17:00","19:15","21:30"];
+  return base.map((time, i) => {
+    const h = HALLS[i % HALLS.length];
+    return { id: movie.id + "-" + i, time, hall: h.name, hallIdx: h.index, priceAdd: h.priceAdd };
+  });
+}
+function getOccupied(showtimeId){
+  const rand = mulberry32(hashCode(showtimeId));
+  const set = new Set();
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const density = (r>2 && r<8) ? 0.22 : 0.12;
+    if(rand() < density) set.add(seatId(r,c));
+  }
+  return set;
+}
+
+let toastTimer;
+function toast(msg){
+  DOM.toast.textContent = msg;
+  DOM.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => DOM.toast.classList.remove("show"), 2700);
+}
+
+let audioCtx;
+function beep(freq, dur){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = "sine"; osc.frequency.value = freq || 660; gain.gain.value = 0.06;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (dur || 0.12));
+    osc.stop(audioCtx.currentTime + (dur || 0.12));
+  }catch(e){}
+}
+if(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){
+  $("#mobile-warn").classList.add("show");
+}
+
+/* ========== SỰ KIỆN TÙY CHỈNH NHÂN VẬT Ở START SCREEN ========== */
+document.querySelectorAll("#jacket-swatches .color-swatch").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#jacket-swatches .color-swatch").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    profile.color = btn.dataset.color;
+    rebuildLocalAvatarMesh();
+  });
+});
+document.querySelectorAll("#hat-choices .hat-chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#hat-choices .hat-chip").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    profile.hat = btn.dataset.hat;
+    rebuildLocalAvatarMesh();
+  });
+});
+
+/* ========== THREE SETUP ========== */
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05050a);
+scene.fog = new THREE.FogExp2(0x05050a, 0.010);
+const camera = new THREE.PerspectiveCamera(72, window.innerWidth/window.innerHeight, 0.05, 220);
+camera.rotation.order = "YXZ";
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ========== COLLIDERS & ANTI-STUCK SLIDING RESOLVER ========== */
+const colliders = [];
+
+function isHallUnlocked(hallIdx){
+  return Boolean(state.ticket && state.ticketChecked && state.ticket.showtime.hallIdx === hallIdx);
+}
+
+function isColliderActive(c){
+  if(c.requiresTicketCheck && state.ticketChecked) return false;
+  if(c.doorHallIdx !== undefined){
+    const d = hallDoors[c.doorHallIdx];
+    if(isHallUnlocked(c.doorHallIdx) && d && d.open > 0.45) return false;
+  }
+  return true;
+}
+
+function moveAndResolveCollisions(dx, dz){
+  player.pos.x += dx;
+  player.pos.z += dz;
+  const r = CFG.playerRadius;
+
+  for(let iter = 0; iter < 3; iter++){
+    for(let i = 0; i < colliders.length; i++){
+      const c = colliders[i];
+      if(!isColliderActive(c)) continue;
+
+      const closestX = Math.max(c.minX, Math.min(player.pos.x, c.maxX));
+      const closestZ = Math.max(c.minZ, Math.min(player.pos.z, c.maxZ));
+      const distX = player.pos.x - closestX;
+      const distZ = player.pos.z - closestZ;
+      const distSq = distX * distX + distZ * distZ;
+
+      if(distSq < r * r){
+        if(distSq > 1e-6){
+          const dist = Math.sqrt(distSq);
+          const overlap = r - dist;
+          player.pos.x += (distX / dist) * overlap;
+          player.pos.z += (distZ / dist) * overlap;
+        } else {
+          const leftPen = Math.abs(player.pos.x - c.minX);
+          const rightPen = Math.abs(c.maxX - player.pos.x);
+          const backPen = Math.abs(player.pos.z - c.minZ);
+          const frontPen = Math.abs(c.maxZ - player.pos.z);
+          const minPen = Math.min(leftPen, rightPen, backPen, frontPen);
+          if(minPen === leftPen) player.pos.x = c.minX - r;
+          else if(minPen === rightPen) player.pos.x = c.maxX + r;
+          else if(minPen === backPen) player.pos.z = c.minZ - r;
+          else player.pos.z = c.maxZ + r;
+        }
+      }
+    }
+  }
+}
+
+function getFloorElevation(x, z){
+  const hIdx = getNearestHallIdx(x);
+  const hx = HALLS[hIdx].x;
+  const dx = Math.abs(x - hx);
+
+  if(z >= 5.0 && z <= 6.95 && dx <= 1.65){
+    const t = Math.max(0, Math.min(1, (6.9 - z) / 1.9));
+    return t * TOP_TIER_Y;
+  }
+
+  if(z < 5.0 && z >= -6.6 && dx <= 10.8){
+    if(z >= 4.25) return TOP_TIER_Y;
+    if(dx <= 0.85){
+      const progress = Math.max(0, Math.min(1, (z - (-6.0)) / (4.35 - (-6.0))));
+      const totalSteps = (ROWS - 1) * 2;
+      const stepIdx = Math.round(progress * totalSteps);
+      return CFG.baseTierOffset + (stepIdx / totalSteps) * ((ROWS - 1) * CFG.tierPerRow);
+    }
+    const rowFloat = (z - (-6.55)) / 1.15;
+    const r = Math.max(0, Math.min(ROWS - 1, Math.floor(rowFloat)));
+    return CFG.baseTierOffset + r * CFG.tierPerRow;
+  }
+  return 0;
+}
+
+function getNearestHallIdx(x){
+  let best = 0, bestDist = Infinity;
+  for(let i=0;i<HALLS.length;i++){
+    const d = Math.abs(x - HALLS[i].x);
+    if(d < bestDist){ bestDist = d; best = i; }
+  }
+  return best;
+}
+
+/* ========== TEXTURES ========== */
+function makeCarpetTexture(repeatX = 4, repeatY = 4){
+  const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#3a0a12"; ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle = "rgba(245,197,24,0.08)"; ctx.lineWidth = 2;
+  for(let i=-256;i<512;i+=48){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+256,256);ctx.stroke()}
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  return tex;
+}
+function makeFloorTexture(color, pattern){
+  const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = color; ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle = pattern || "rgba(255,255,255,0.04)"; ctx.lineWidth = 1.5;
+  for(let i=0;i<=256;i+=64){
+    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,256);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(256,i);ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 6);
+  return tex;
+}
+function makeTextPanel(text, w, h, bg, fg){
+  const c = document.createElement("canvas"); c.width = 512; c.height = 128;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = bg || "rgba(0,0,0,0.82)"; ctx.fillRect(0,0,512,128);
+  ctx.strokeStyle = fg || "#f5c518"; ctx.lineWidth = 4; ctx.strokeRect(6,6,500,116);
+  ctx.fillStyle = fg || "#f5c518"; ctx.font = "bold 44px Segoe UI, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, 256, 64);
+  const tex = new THREE.CanvasTexture(c);
+  return new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:tex, transparent:true}));
+}
+function makePosterTexture(movie){
+  const c = document.createElement("canvas"); c.width = 340; c.height = 500;
+  const ctx = c.getContext("2d");
+  const g = ctx.createLinearGradient(0,0,340,500);
+  g.addColorStop(0,movie.c1); g.addColorStop(1,movie.c2);
+  ctx.fillStyle = g; ctx.fillRect(0,0,340,500);
+  const rg = ctx.createRadialGradient(120,100,20,170,250,380);
+  rg.addColorStop(0,"rgba(255,255,255,0.18)"); rg.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle = rg; ctx.fillRect(0,0,340,500);
+  ctx.fillStyle = "#fff"; ctx.font = "bold 32px Segoe UI, sans-serif"; ctx.textAlign = "center";
+  ctx.shadowColor = "rgba(0,0,0,0.85)"; ctx.shadowBlur = 12;
+  const words = movie.title.split(" "); const lines = []; let cur = "";
+  for(const w of words){if((cur+" "+w).trim().length>12){lines.push(cur);cur=w}else cur=(cur+" "+w).trim()}
+  if(cur) lines.push(cur);
+  lines.forEach((line,i) => ctx.fillText(line, 170, 380+i*38));
+  ctx.shadowBlur = 0; ctx.font = "600 16px Segoe UI, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.fillText(movie.genre, 170, 470);
+  return new THREE.CanvasTexture(c);
+}
+function makeArrowTexture(){
+  const c = document.createElement("canvas"); c.width = 128; c.height = 128;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0,0,128,128);
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(64, 14); ctx.lineTo(112, 74); ctx.lineTo(86, 74); ctx.lineTo(64, 46); ctx.lineTo(42, 74); ctx.lineTo(16, 74);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(64, 54); ctx.lineTo(104, 106); ctx.lineTo(80, 106); ctx.lineTo(64, 84); ctx.lineTo(48, 106); ctx.lineTo(24, 106);
+  ctx.closePath(); ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
+
+/* Sprite nhãn tên + ghế chính chủ trên đầu mỗi nhân vật 3D */
+function makeAvatarLabelSprite(nameText, seatBadgeText, emoteText){
+  const c = document.createElement("canvas");
+  c.width = 512; c.height = 160;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, 512, 160);
+
+  if(emoteText){
+    ctx.font = "46px Segoe UI Emoji, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(emoteText, 256, 48);
+  }
+
+  ctx.fillStyle = "rgba(15, 15, 25, 0.85)";
+  ctx.strokeStyle = seatBadgeText ? "#f5c518" : "rgba(255,255,255,0.3)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(66, 62, 380, 82, 18) : ctx.rect(66, 62, 380, 82);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 28px Segoe UI, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(nameText.slice(0, 18), 256, 98);
+
+  ctx.fillStyle = seatBadgeText ? "#6ee7b7" : "#9ca3af";
+  ctx.font = "bold 20px Segoe UI, sans-serif";
+  ctx.fillText(seatBadgeText || "Đang dạo sảnh", 256, 130);
+
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false});
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.85, 0.58, 1);
+  return { sprite, canvas: c, ctx, tex };
+}
+
+/* ========== LIGHTING ========== */
+const mainAmbient = new THREE.AmbientLight(0x334466, 0.50);
+scene.add(mainAmbient);
+const mainHemi = new THREE.HemisphereLight(0x8888aa, 0x1a0a20, 0.45);
+scene.add(mainHemi);
+
+const lobbyL1 = new THREE.PointLight(0xffaa55, 1.0, 22, 2); lobbyL1.position.set(-6, 6, 17); scene.add(lobbyL1);
+const lobbyL2 = new THREE.PointLight(0xffaa55, 1.0, 22, 2); lobbyL2.position.set(6, 6, 17); scene.add(lobbyL2);
+const lobbyL3 = new THREE.PointLight(0xffeeaa, 0.8, 18, 2); lobbyL3.position.set(0, 6, 22); scene.add(lobbyL3);
+const corridorL = new THREE.PointLight(0xff8844, 0.8, 18, 2); corridorL.position.set(0, 5.2, 8.0); scene.add(corridorL);
+
+const screenLight = new THREE.PointLight(0xffffff, 2.4, 28, 1.5);
+screenLight.position.set(0, 5.4, -7);
+scene.add(screenLight);
+
+const theaterAmbient = new THREE.PointLight(0xffd2a0, 0.78, 34, 1.8);
+theaterAmbient.position.set(0, 9.8, -1.5);
+scene.add(theaterAmbient);
+
+const theaterCeilingLightL = new THREE.PointLight(0xffdca8, 0.85, 24, 2);
+theaterCeilingLightL.position.set(-5.5, 9.9, -1.0);
+scene.add(theaterCeilingLightL);
+
+const theaterCeilingLightR = new THREE.PointLight(0xffdca8, 0.85, 24, 2);
+theaterCeilingLightR.position.set(5.5, 9.9, -1.0);
+scene.add(theaterCeilingLightR);
+
+/* ========== SHARED MATERIALS & GEOMETRIES ========== */
+const MATS = {
+  wallLobby: new THREE.MeshStandardMaterial({color:0x2a1520, roughness:0.9}),
+  wallTheater: new THREE.MeshStandardMaterial({color:0x14081a, roughness:1}),
+  wallCorridor: new THREE.MeshStandardMaterial({color:0x1d0c18, roughness:0.95}),
+  counter: new THREE.MeshStandardMaterial({color:0x3a1a24, roughness:0.6, metalness:0.2}),
+  counterTop: new THREE.MeshStandardMaterial({color:0xf5c518, roughness:0.4, metalness:0.6}),
+  column: new THREE.MeshStandardMaterial({color:0x221620, roughness:0.7}),
+  curtain: new THREE.MeshStandardMaterial({color:0x4a0810, roughness:1}),
+  screenFrame: new THREE.MeshStandardMaterial({color:0x08050a, roughness:1}),
+  usherJacket: new THREE.MeshStandardMaterial({color:0x8b0000, roughness:0.7}),
+  usherSkin: new THREE.MeshStandardMaterial({color:0xe0b090, roughness:0.8}),
+  usherCap: new THREE.MeshStandardMaterial({color:0x111111, roughness:0.5}),
+  usherPants: new THREE.MeshStandardMaterial({color:0x1a1a2a, roughness:0.8}),
+  tierPlatform: new THREE.MeshStandardMaterial({color:0x1b0d18, roughness:0.92}),
+  tierCarpet: new THREE.MeshStandardMaterial({color:0x2c0b14, roughness:0.88}),
+  stairStep: new THREE.MeshStandardMaterial({color:0x24101c, roughness:0.82}),
+  handrailMetal: new THREE.MeshStandardMaterial({color:0xd4af37, roughness:0.35, metalness:0.75}),
+  seatBasePlate: new THREE.MeshStandardMaterial({color:0x16121d, roughness:0.7, metalness:0.35}),
+  seatPedestal: new THREE.MeshStandardMaterial({color:0x0b070e, roughness:0.8, metalness:0.4}),
+  seatArmrest: new THREE.MeshStandardMaterial({color:0x181420, roughness:0.5, metalness:0.2}),
+  doorFrame: new THREE.MeshStandardMaterial({color:0x2c1218, roughness:0.5, metalness:0.3}),
+  doorLeaf: new THREE.MeshStandardMaterial({color:0x4a101a, roughness:0.6, metalness:0.15}),
+  doorGlass: new THREE.MeshStandardMaterial({color:0x88ccff, roughness:0.15, metalness:0.8, transparent:true, opacity:0.55}),
+  doorHandle: new THREE.MeshStandardMaterial({color:0xf5c518, roughness:0.3, metalness:0.85}),
+  doorStatusLocked: new THREE.MeshBasicMaterial({color:0xff3344}),
+  doorStatusUnlocked: new THREE.MeshBasicMaterial({color:0x10b981}),
+  seatNormal: new THREE.MeshStandardMaterial({color:0x7a1c1c, roughness:0.6}),
+  seatVip: new THREE.MeshStandardMaterial({color:0x6a1a1a, emissive:0x1f0d00, emissiveIntensity:0.25, roughness:0.55}),
+  seatTaken: new THREE.MeshStandardMaterial({color:0x1a1a24, roughness:0.95}),
+  seatPlayerLocked: new THREE.MeshStandardMaterial({color:0x1e3a8a, emissive:0x0d225c, emissiveIntensity:0.45, roughness:0.5}),
+  seatMine: new THREE.MeshStandardMaterial({color:0xe50914, emissive:0xa00008, emissiveIntensity:0.75, roughness:0.4}),
+  ceilingFixtureHousing: new THREE.MeshStandardMaterial({color:0x181822, roughness:0.6, metalness:0.4}),
+  ceilingBulb: new THREE.MeshBasicMaterial({color:0xffe4b5}),
+  wallSconceBulb: new THREE.MeshBasicMaterial({color:0xffb86c}),
+  stepLedStrip: new THREE.MeshBasicMaterial({color:0xff9933}),
+  seatUnderLed: new THREE.MeshBasicMaterial({color:0xffaa44}),
+  hallwayLight: new THREE.MeshBasicMaterial({color:0xffbb66})
+};
+
+const SHARED_GEOMS = {
+  cushion: new THREE.BoxGeometry(0.86, 0.18, 0.76),
+  back: new THREE.BoxGeometry(0.86, 0.78, 0.14),
+  headrest: new THREE.BoxGeometry(0.68, 0.18, 0.16),
+  pedestal: new THREE.BoxGeometry(0.36, 0.56, 0.42),
+  basePlate: new THREE.BoxGeometry(0.94, 0.10, 0.90),
+  baseLed: new THREE.BoxGeometry(0.84, 0.028, 0.04),
+  armrest: new THREE.BoxGeometry(0.09, 0.08, 0.58),
+  column: new THREE.CylinderGeometry(0.3, 0.3, 10.8, 12),
+  curtain: new THREE.BoxGeometry(2.4, 10.8, 0.3),
+  screenFrame: new THREE.BoxGeometry(19, 11.4, 0.4),
+  ceilingHousing: new THREE.BoxGeometry(1.8, 0.08, 0.9),
+  ceilingBulb: new THREE.PlaneGeometry(1.6, 0.7),
+  sconceHousing: new THREE.BoxGeometry(0.14, 0.55, 0.28),
+  sconceBulb: new THREE.BoxGeometry(0.16, 0.38, 0.20),
+  wallLed: new THREE.BoxGeometry(0.1, 0.08, 0.5),
+  doorLeaf: new THREE.BoxGeometry(1.42, 2.55, 0.10),
+  doorGlass: new THREE.BoxGeometry(0.32, 0.75, 0.12),
+  doorHandle: new THREE.BoxGeometry(0.06, 0.55, 0.16),
+  doorFrameSide: new THREE.BoxGeometry(0.16, 2.75, 0.28),
+  doorFrameTop: new THREE.BoxGeometry(3.22, 0.20, 0.28),
+  doorStatusBar: new THREE.BoxGeometry(2.9, 0.10, 0.32),
+  entryStepLed: new THREE.BoxGeometry(2.85, 0.03, 0.035),
+  aisleStepLed: new THREE.BoxGeometry(1.44, 0.025, 0.03),
+  /* Hình học nhân vật 3D dùng chung */
+  avBody: new THREE.BoxGeometry(0.50, 0.68, 0.30),
+  avHead: new THREE.SphereGeometry(0.18, 14, 12),
+  avLimb: new THREE.BoxGeometry(0.15, 0.62, 0.18)
+};
+
+/* ========== HÀM DỰNG NHÂN VẬT 3D (Cho cả người chơi chính & mọi người xem trực tuyến) ========== */
+function createCharacterAvatar(cfg){
+  const root = new THREE.Group();
+  const jacketMat = new THREE.MeshStandardMaterial({color: cfg.color || "#e50914", roughness: 0.55});
+
+  const torso = new THREE.Mesh(SHARED_GEOMS.avBody, jacketMat);
+  torso.position.y = 1.02;
+  root.add(torso);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.y = 1.56;
+  const headMesh = new THREE.Mesh(SHARED_GEOMS.avHead, MATS.usherSkin);
+  headGroup.add(headMesh);
+
+  // Phụ kiện đầu
+  if(cfg.hat === "glasses3d"){
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.08, 0.06), new THREE.MeshBasicMaterial({color:0x111111}));
+    frame.position.set(0, 0.02, -0.16);
+    const lensL = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.07), new THREE.MeshBasicMaterial({color:0xff1e29}));
+    lensL.position.set(-0.07, 0.02, -0.165);
+    const lensR = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.07), new THREE.MeshBasicMaterial({color:0x00d2ff}));
+    lensR.position.set(0.07, 0.02, -0.165);
+    headGroup.add(frame, lensL, lensR);
+  } else if(cfg.hat === "cap"){
+    const capTop = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.09, 14), jacketMat);
+    capTop.position.y = 0.13;
+    const capBrim = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.16), jacketMat);
+    capBrim.position.set(0, 0.10, -0.14);
+    headGroup.add(capTop, capBrim);
+  } else if(cfg.hat === "headset"){
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.025, 8, 16, Math.PI), new THREE.MeshBasicMaterial({color:0x00ffcc}));
+    band.position.y = 0.02;
+    const earL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06, 12), new THREE.MeshBasicMaterial({color:0xff00aa}));
+    earL.rotation.z = Math.PI/2; earL.position.set(-0.19, 0, 0);
+    const earR = earL.clone(); earR.position.set(0.19, 0, 0);
+    headGroup.add(band, earL, earR);
+  } else if(cfg.hat === "crown"){
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.14, 0.12, 8), MATS.handrailMetal);
+    crown.position.y = 0.17;
+    headGroup.add(crown);
+  }
+  root.add(headGroup);
+
+  const legL = new THREE.Mesh(SHARED_GEOMS.avLimb, MATS.usherPants);
+  legL.position.set(-0.13, 0.35, 0);
+  const legR = new THREE.Mesh(SHARED_GEOMS.avLimb, MATS.usherPants);
+  legR.position.set(0.13, 0.35, 0);
+  const armL = new THREE.Mesh(SHARED_GEOMS.avLimb, jacketMat);
+  armL.scale.set(0.85, 0.9, 0.85);
+  armL.position.set(-0.33, 1.02, 0);
+  const armR = new THREE.Mesh(SHARED_GEOMS.avLimb, jacketMat);
+  armR.scale.set(0.85, 0.9, 0.85);
+  armR.position.set(0.33, 1.02, 0);
+  root.add(legL, legR, armL, armR);
+
+  const labelObj = makeAvatarLabelSprite(cfg.name || "Khán giả", cfg.seatBadge || "", cfg.emote || "");
+  labelObj.sprite.position.y = 2.08;
+  root.add(labelObj.sprite);
+
+  return {
+    root, torso, headGroup, legL, legR, armL, armR, jacketMat, labelObj,
+    updateLabel(nameText, seatBadgeText, emoteText){
+      const { ctx, tex } = this.labelObj;
+      ctx.clearRect(0, 0, 512, 160);
+      if(emoteText){
+        ctx.font = "46px Segoe UI Emoji, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(emoteText, 256, 48);
+      }
+      ctx.fillStyle = "rgba(15, 15, 25, 0.85)";
+      ctx.strokeStyle = seatBadgeText ? "#f5c518" : "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(66, 62, 380, 82, 18) : ctx.rect(66, 62, 380, 82);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 28px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText((nameText || "Khán giả").slice(0, 18), 256, 98);
+
+      ctx.fillStyle = seatBadgeText ? "#6ee7b7" : "#9ca3af";
+      ctx.font = "bold 20px Segoe UI, sans-serif";
+      ctx.fillText(seatBadgeText || "Đang dạo sảnh", 256, 130);
+      tex.needsUpdate = true;
+    },
+    setPose(sitting, walkPhase){
+      if(sitting){
+        this.torso.position.set(0, 0.88, 0.10);
+        this.headGroup.position.set(0, 1.38, 0.10);
+        this.legL.rotation.x = -Math.PI / 2.2;
+        this.legR.rotation.x = -Math.PI / 2.2;
+        this.legL.position.set(-0.13, 0.56, -0.16);
+        this.legR.position.set(0.13, 0.56, -0.16);
+        this.armL.rotation.x = -0.45;
+        this.armR.rotation.x = -0.45;
+      } else {
+        this.torso.position.set(0, 1.02, 0);
+        this.headGroup.position.set(0, 1.56, 0);
+        const sw = Math.sin(walkPhase || 0) * 0.45;
+        this.legL.rotation.x = sw;
+        this.legR.rotation.x = -sw;
+        this.legL.position.set(-0.13, 0.35, 0);
+        this.legR.position.set(0.13, 0.35, 0);
+        this.armL.rotation.x = -sw * 0.7;
+        this.armR.rotation.x = sw * 0.7;
+      }
+    }
+  };
+}
+
+let localAvatar = null;
+function rebuildLocalAvatarMesh(){
+  if(localAvatar) scene.remove(localAvatar.root);
+  const badge = state.ticket ? `${HALLS[state.ticket.showtime.hallIdx].short} · Ghế ${state.ticket.seats[0].id}` : "";
+  localAvatar = createCharacterAvatar({
+    name: profile.name + " (Bạn)",
+    color: profile.color,
+    hat: profile.hat,
+    seatBadge: badge,
+    emote: (performance.now() < state.emoteUntil) ? state.emote : ""
+  });
+  localAvatar.root.visible = state.thirdPerson || Boolean(player && player.sitting);
+  scene.add(localAvatar.root);
+}
+
+/* ========== WORLD HELPERS ========== */
+function addFloor(minX, maxX, minZ, maxZ, texture, y){
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(maxX - minX, maxZ - minZ),
+    new THREE.MeshStandardMaterial({map: texture, roughness: 0.85})
+  );
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.set((minX + maxX)/2, y || 0, (minZ + maxZ)/2);
+  scene.add(mesh);
+}
+function addWall(minX, maxX, minZ, maxZ, height, material, skipCollider){
+  const h = height || 8;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX, h, maxZ - minZ), material || MATS.wallLobby);
+  mesh.position.set((minX + maxX)/2, h/2, (minZ + maxZ)/2);
+  scene.add(mesh);
+  if(!skipCollider) colliders.push({minX, maxX, minZ, maxZ});
+  return mesh;
+}
+function addCeiling(minX, maxX, minZ, maxZ, y, color){
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(maxX - minX, maxZ - minZ),
+    new THREE.MeshStandardMaterial({color, roughness: 1})
+  );
+  mesh.rotation.x = Math.PI/2;
+  mesh.position.set((minX + maxX)/2, y, (minZ + maxZ)/2);
+  scene.add(mesh);
+}
+
+/* ========== LOBBY & GRAND HALLWAY ========== */
+const lobbyFloorTex = makeCarpetTexture(4, 4);
+const hallwayFloorTex = makeCarpetTexture(28, 2);
+const theaterFloorTex = makeFloorTexture("#12060f", "rgba(245,197,24,0.05)");
+
+addFloor(-15, 15, 10.6, 24, lobbyFloorTex);
+addCeiling(-15, 15, 10.6, 24, 8, 0x0a0610);
+addWall(-15.3, -15, 10.6, 24, 8, MATS.wallLobby);
+addWall(15, 15.3, 10.6, 24, 8, MATS.wallLobby);
+addWall(-15, 15, 24, 24.3, 8, MATS.wallLobby);
+addWall(-15, -2.5, 10.4, 10.7, 8, MATS.wallLobby);
+addWall(2.5, 15, 10.4, 10.7, 8, MATS.wallLobby);
+
+addFloor(-2.5, 2.5, 9.2, 10.6, lobbyFloorTex);
+addCeiling(-2.5, 2.5, 9.2, 10.6, 7.5, 0x08040a);
+addWall(-2.7, -2.5, 9.2, 10.6, 7.5, MATS.wallCorridor);
+addWall(2.5, 2.7, 9.2, 10.6, 7.5, MATS.wallCorridor);
+
+const HALLWAY_MIN_X = -60, HALLWAY_MAX_X = 84;
+addFloor(HALLWAY_MIN_X, HALLWAY_MAX_X, 5.0, 9.2, hallwayFloorTex);
+addCeiling(HALLWAY_MIN_X, HALLWAY_MAX_X, 5.0, 9.2, 7.5, 0x08040c);
+addWall(HALLWAY_MIN_X - 0.3, HALLWAY_MIN_X, 5.0, 9.2, 7.5, MATS.wallCorridor);
+addWall(HALLWAY_MAX_X, HALLWAY_MAX_X + 0.3, 5.0, 9.2, 7.5, MATS.wallCorridor);
+addWall(HALLWAY_MIN_X, -2.5, 9.2, 9.5, 7.5, MATS.wallCorridor);
+addWall(2.5, HALLWAY_MAX_X, 9.2, 9.5, 7.5, MATS.wallCorridor);
+
+const hallwayLightGeo = new THREE.BoxGeometry(2.8, 0.06, 0.24);
+for(let x = -54; x <= 78; x += 6){
+  const hl = new THREE.Mesh(hallwayLightGeo, MATS.hallwayLight);
+  hl.position.set(x, 7.42, 7.6);
+  scene.add(hl);
+}
+
+const dirSignLeft = makeTextPanel("◄ PHÒNG 2 (3D) · PHÒNG 4 (4DX)", 4.6, 0.65, "rgba(20,15,30,0.92)", "#60a5fa");
+dirSignLeft.position.set(-5.5, 4.2, 9.12); dirSignLeft.rotation.y = Math.PI; scene.add(dirSignLeft);
+const dirSignRight = makeTextPanel("PHÒNG 3 (IMAX) · PHÒNG 5 · PHÒNG 6 ►", 5.2, 0.65, "rgba(20,15,30,0.92)", "#f5c518");
+dirSignRight.position.set(5.8, 4.2, 9.12); dirSignRight.rotation.y = Math.PI; scene.add(dirSignRight);
+
+/* Counters */
+const ticketCounter = new THREE.Mesh(new THREE.BoxGeometry(1.4,1.1,5), MATS.counter);
+ticketCounter.position.set(-14.1,0.55,16); scene.add(ticketCounter);
+colliders.push({minX:-14.9, maxX:-13.3, minZ:13.5, maxZ:18.5});
+const ticketTop = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.08,5.1), MATS.counterTop);
+ticketTop.position.set(-14.1,1.14,16); scene.add(ticketTop);
+const ticketSign = makeTextPanel("🎫 VÉ PHIM", 3.5, 0.9, "rgba(80,10,20,0.9)", "#f5c518");
+ticketSign.position.set(-14.85,3.2,16); ticketSign.rotation.y = Math.PI/2; scene.add(ticketSign);
+
+const snackCounter = new THREE.Mesh(new THREE.BoxGeometry(1.4,1.1,5), MATS.counter);
+snackCounter.position.set(14.1,0.55,16); scene.add(snackCounter);
+colliders.push({minX:13.3, maxX:14.9, minZ:13.5, maxZ:18.5});
+const snackTop = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.08,5.1), MATS.counterTop);
+snackTop.position.set(14.1,1.14,16); scene.add(snackTop);
+const snackSign = makeTextPanel("🍿 BẮP NƯỚC", 4, 0.9, "rgba(80,40,10,0.9)", "#f5c518");
+snackSign.position.set(14.85,3.2,16); snackSign.rotation.y = -Math.PI/2; scene.add(snackSign);
+
+const posterTextures = MOVIES.map(m => makePosterTexture(m));
+MOVIES.slice(0,4).forEach((m,i)=>{
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2,3), new THREE.MeshBasicMaterial({map:posterTextures[i]}));
+  poster.position.set(-8+i*5.5, 4, 23.85); poster.rotation.y = Math.PI; scene.add(poster);
+});
+
+/* ========== USHER ========== */
+const usherGroup = new THREE.Group();
+const uBody = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.75,0.35), MATS.usherJacket);
+uBody.position.y = 1.2; usherGroup.add(uBody);
+const uHead = new THREE.Mesh(new THREE.SphereGeometry(0.18,16,12), MATS.usherSkin);
+uHead.position.y = 1.75; usherGroup.add(uHead);
+const uCap = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.08,16), MATS.usherCap);
+uCap.position.y = 1.9; usherGroup.add(uCap);
+const uBrim = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.04,0.15), MATS.usherCap);
+uBrim.position.set(0,1.88,0.12); usherGroup.add(uBrim);
+const uLegL = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.8,0.22), MATS.usherPants);
+uLegL.position.set(-0.15,0.4,0); usherGroup.add(uLegL);
+const uLegR = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.8,0.22), MATS.usherPants);
+uLegR.position.set(0.15,0.4,0); usherGroup.add(uLegR);
+const uArmL = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.6,0.2), MATS.usherJacket);
+uArmL.position.set(-0.35,1.25,0); usherGroup.add(uArmL);
+const uArmR = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.6,0.2), MATS.usherJacket);
+uArmR.position.set(0.35,1.25,0); usherGroup.add(uArmR);
+const uBadge = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.02), new THREE.MeshStandardMaterial({color:0xf5c518,metalness:0.6,roughness:0.3}));
+uBadge.position.set(-0.15,1.35,0.19); usherGroup.add(uBadge);
+usherGroup.position.set(-1.35, 0, 9.6);
+scene.add(usherGroup);
+colliders.push({minX:-2.5, maxX:2.5, minZ:9.3, maxZ:9.9, requiresTicketCheck:true});
+
+/* ========== MÀN HÌNH, CỬA PHÒNG, CẦU THANG VÀO PHÒNG & GHẾ NÂNG CAO ========== */
+const screenCanvas = document.createElement("canvas");
+screenCanvas.width = 1024; screenCanvas.height = 576;
+const screenCtx = screenCanvas.getContext("2d");
+const screenTex = new THREE.CanvasTexture(screenCanvas);
+const screenMaterial = new THREE.MeshBasicMaterial({map: screenTex});
+
+const hallSeats = Array.from({length: HALLS.length}, () => ({}));
+const hallDoors = [];
+const defaultHallOccupied = HALLS.map((h) => getOccupied("default-hall-" + h.index));
+
+const tierBankWidth = 9.6;
+const tierRowDepth = 1.16;
+
+function buildEntranceStairsAndDoor(hall){
+  const hx = hall.x;
+  const hIdx = hall.index;
+
+  const numEntrySteps = 10;
+  const stairStartZ = 6.9;
+  const stairEndZ = 5.0;
+  const stepDepth = (stairStartZ - stairEndZ) / numEntrySteps;
+  const stepRise = TOP_TIER_Y / numEntrySteps;
+
+  for(let s = 0; s < numEntrySteps; s++){
+    const sh = (s + 1) * stepRise;
+    const sz = stairStartZ - (s + 0.5) * stepDepth;
+    const stepGeo = new THREE.BoxGeometry(3.0, sh, stepDepth + 0.02);
+    const stepMesh = new THREE.Mesh(stepGeo, MATS.stairStep);
+    stepMesh.position.set(hx, sh / 2, sz);
+    scene.add(stepMesh);
+
+    const led = new THREE.Mesh(SHARED_GEOMS.entryStepLed, MATS.stepLedStrip);
+    led.position.set(hx, sh + 0.01, sz + stepDepth / 2);
+    scene.add(led);
+  }
+
+  [-1.56, 1.56].forEach(sideX => {
+    const railWall = new THREE.Mesh(new THREE.BoxGeometry(0.12, TOP_TIER_Y + 0.75, 1.85), MATS.wallCorridor);
+    railWall.position.set(hx + sideX, (TOP_TIER_Y + 0.75) / 2, 5.92);
+    scene.add(railWall);
+
+    const handrail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.7, 10), MATS.handrailMetal);
+    handrail.position.set(hx + sideX, TOP_TIER_Y / 2 + 0.85, 5.92);
+    handrail.rotation.x = Math.atan2(1.9, TOP_TIER_Y);
+    scene.add(handrail);
+  });
+
+  const doorY = TOP_TIER_Y;
+  const frameL = new THREE.Mesh(SHARED_GEOMS.doorFrameSide, MATS.doorFrame);
+  frameL.position.set(hx - 1.50, doorY + 1.375, 5.1);
+  scene.add(frameL);
+
+  const frameR = new THREE.Mesh(SHARED_GEOMS.doorFrameSide, MATS.doorFrame);
+  frameR.position.set(hx + 1.50, doorY + 1.375, 5.1);
+  scene.add(frameR);
+
+  const frameTop = new THREE.Mesh(SHARED_GEOMS.doorFrameTop, MATS.doorFrame);
+  frameTop.position.set(hx, doorY + 2.72, 5.1);
+  scene.add(frameTop);
+
+  const statusBar = new THREE.Mesh(SHARED_GEOMS.doorStatusBar, MATS.doorStatusLocked);
+  statusBar.position.set(hx, doorY + 2.86, 5.12);
+  scene.add(statusBar);
+
+  const leftPivot = new THREE.Group();
+  leftPivot.position.set(hx - 1.42, doorY, 5.1);
+  const leftLeaf = new THREE.Mesh(SHARED_GEOMS.doorLeaf, MATS.doorLeaf);
+  leftLeaf.position.set(0.71, 1.275, 0);
+  leftPivot.add(leftLeaf);
+  const leftGlass = new THREE.Mesh(SHARED_GEOMS.doorGlass, MATS.doorGlass);
+  leftGlass.position.set(0.75, 1.55, 0);
+  leftPivot.add(leftGlass);
+  const leftHandle = new THREE.Mesh(SHARED_GEOMS.doorHandle, MATS.doorHandle);
+  leftHandle.position.set(1.26, 1.18, 0);
+  leftPivot.add(leftHandle);
+  scene.add(leftPivot);
+
+  const rightPivot = new THREE.Group();
+  rightPivot.position.set(hx + 1.42, doorY, 5.1);
+  const rightLeaf = new THREE.Mesh(SHARED_GEOMS.doorLeaf, MATS.doorLeaf);
+  rightLeaf.position.set(-0.71, 1.275, 0);
+  rightPivot.add(rightLeaf);
+  const rightGlass = new THREE.Mesh(SHARED_GEOMS.doorGlass, MATS.doorGlass);
+  rightGlass.position.set(-0.75, 1.55, 0);
+  rightPivot.add(rightGlass);
+  const rightHandle = new THREE.Mesh(SHARED_GEOMS.doorHandle, MATS.doorHandle);
+  rightHandle.position.set(-1.26, 1.18, 0);
+  rightPivot.add(rightHandle);
+  scene.add(rightPivot);
+
+  hallDoors.push({
+    hallIdx: hIdx,
+    hx,
+    leftPivot,
+    rightPivot,
+    statusBar,
+    open: 0,
+    targetOpen: 0,
+    manualLockClosed: false
+  });
+  colliders.push({minX: hx - 1.50, maxX: hx + 1.50, minZ: 4.92, maxZ: 5.28, doorHallIdx: hIdx});
+}
+
+function buildTheaterHall(hall){
+  const hx = hall.x;
+  const hIdx = hall.index;
+  const roomHeight = 10.8;
+
+  addFloor(hx - 11, hx + 11, -10, 5, theaterFloorTex);
+  addCeiling(hx - 11, hx + 11, -10, 5, roomHeight, 0x05020a);
+
+  addWall(hx - 11, hx - 1.55, 4.95, 5.25, roomHeight, MATS.wallTheater);
+  addWall(hx + 1.55, hx + 11, 4.95, 5.25, roomHeight, MATS.wallTheater);
+  const overDoorWall = new THREE.Mesh(
+    new THREE.BoxGeometry(3.1, roomHeight - (TOP_TIER_Y + 2.8), 0.28),
+    MATS.wallTheater
+  );
+  overDoorWall.position.set(hx, TOP_TIER_Y + 2.8 + (roomHeight - (TOP_TIER_Y + 2.8)) / 2, 5.1);
+  scene.add(overDoorWall);
+
+  addWall(hx - 11.25, hx - 11, -10, 5, roomHeight, MATS.wallTheater);
+  addWall(hx + 11, hx + 11.25, -10, 5, roomHeight, MATS.wallTheater);
+  addWall(hx - 11, hx + 11, -10.25, -10, roomHeight, MATS.wallTheater);
+
+  if(hIdx === 0){
+    addWall(-13, -11, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(11, 13, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(-37, -35, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(35, 37, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(-60, -59, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(59, 61, 4.95, 5.25, 7.5, MATS.wallCorridor);
+    addWall(83, 84, 4.95, 5.25, 7.5, MATS.wallCorridor);
+  }
+
+  buildEntranceStairsAndDoor(hall);
+
+  const doorSign = makeTextPanel(hall.name.toUpperCase(), 3.6, 0.72, "rgba(25,10,25,0.94)", hall.accent);
+  doorSign.position.set(hx, TOP_TIER_Y + 3.32, 5.28);
+  scene.add(doorSign);
+
+  const doorPoster = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6, 2.4),
+    new THREE.MeshBasicMaterial({map: posterTextures[hIdx % posterTextures.length]})
+  );
+  doorPoster.position.set(hx + 3.4, 2.5, 5.28);
+  scene.add(doorPoster);
+
+  [-9.5, 9.5].forEach(cx => {
+    const col = new THREE.Mesh(SHARED_GEOMS.column, MATS.column);
+    col.position.set(hx + cx, roomHeight / 2, -8);
+    scene.add(col);
+  });
+
+  const sFrame = new THREE.Mesh(SHARED_GEOMS.screenFrame, MATS.screenFrame);
+  sFrame.position.set(hx, 5.45, -9.85);
+  scene.add(sFrame);
+
+  const sMesh = new THREE.Mesh(new THREE.PlaneGeometry(18, 10.1), screenMaterial);
+  sMesh.position.set(hx, 5.45, -9.65);
+  scene.add(sMesh);
+
+  [-9.8, 9.8].forEach(cx => {
+    const curtain = new THREE.Mesh(SHARED_GEOMS.curtain, MATS.curtain);
+    curtain.position.set(hx + cx, 5.4, -9.5);
+    scene.add(curtain);
+  });
+
+  const ceilingZPositions = [-5.0, -0.5, 3.5];
+  [-5.5, 5.5].forEach(lx => {
+    ceilingZPositions.forEach(lz => {
+      const housing = new THREE.Mesh(SHARED_GEOMS.ceilingHousing, MATS.ceilingFixtureHousing);
+      housing.position.set(hx + lx, roomHeight - 0.06, lz);
+      scene.add(housing);
+
+      const bulb = new THREE.Mesh(SHARED_GEOMS.ceilingBulb, MATS.ceilingBulb);
+      bulb.rotation.x = Math.PI / 2;
+      bulb.position.set(hx + lx, roomHeight - 0.11, lz);
+      scene.add(bulb);
+    });
+  });
+
+  for(let z = -6.5; z <= 3.5; z += 3.3){
+    [-10.88, 10.88].forEach(wx => {
+      const sh = new THREE.Mesh(SHARED_GEOMS.sconceHousing, MATS.ceilingFixtureHousing);
+      sh.position.set(hx + wx, 5.8, z);
+      scene.add(sh);
+      const sb = new THREE.Mesh(SHARED_GEOMS.sconceBulb, MATS.wallSconceBulb);
+      sb.position.set(hx + wx + (wx < 0 ? 0.03 : -0.03), 5.8, z);
+      scene.add(sb);
+    });
+  }
+
+  for(let z = -8; z <= 4; z += 2){
+    [-10.92, 10.92].forEach(wx => {
+      const led = new THREE.Mesh(SHARED_GEOMS.wallLed, MATS.stepLedStrip);
+      led.position.set(hx + wx, 0.2, z);
+      scene.add(led);
+    });
+  }
+
+  const backLandingGeo = new THREE.BoxGeometry(21.6, TOP_TIER_Y, 0.65);
+  const backLanding = new THREE.Mesh(backLandingGeo, MATS.tierPlatform);
+  backLanding.position.set(hx, TOP_TIER_Y / 2, 4.68);
+  scene.add(backLanding);
+
+  const leftBankCenterX = hx - (SEAT_AISLE / 2 + tierBankWidth / 2);
+  const rightBankCenterX = hx + (SEAT_AISLE / 2 + tierBankWidth / 2);
+
+  for(let r = 0; r < ROWS; r++){
+    const rowZ = -6 + r * 1.15;
+    const tierY = CFG.baseTierOffset + r * CFG.tierPerRow;
+
+    const riserGeo = new THREE.BoxGeometry(tierBankWidth, tierY, tierRowDepth);
+    const topCarpetGeo = new THREE.BoxGeometry(tierBankWidth - 0.08, 0.025, tierRowDepth - 0.04);
+    const edgeLedGeo = new THREE.BoxGeometry(tierBankWidth - 0.16, 0.03, 0.03);
+
+    [leftBankCenterX, rightBankCenterX].forEach(bx => {
+      const riserMesh = new THREE.Mesh(riserGeo, MATS.tierPlatform);
+      riserMesh.position.set(bx, tierY / 2, rowZ);
+      scene.add(riserMesh);
+
+      const topCarpetMesh = new THREE.Mesh(topCarpetGeo, MATS.tierCarpet);
+      topCarpetMesh.position.set(bx, tierY + 0.012, rowZ);
+      scene.add(topCarpetMesh);
+
+      const edgeLed = new THREE.Mesh(edgeLedGeo, MATS.stepLedStrip);
+      edgeLed.position.set(bx, tierY + 0.015, rowZ - tierRowDepth / 2 + 0.02);
+      scene.add(edgeLed);
+    });
+
+    for(let sub = 0; sub < 2; sub++){
+      const subH = tierY - (1 - sub) * (CFG.tierPerRow / 2);
+      const subZ = rowZ - 0.28 + sub * 0.57;
+      const stairBox = new THREE.Mesh(new THREE.BoxGeometry(SEAT_AISLE + 0.06, subH, 0.58), MATS.stairStep);
+      stairBox.position.set(hx, subH / 2, subZ);
+      scene.add(stairBox);
+
+      const stairLed = new THREE.Mesh(SHARED_GEOMS.aisleStepLed, MATS.stepLedStrip);
+      stairLed.position.set(hx, subH + 0.015, subZ - 0.27);
+      scene.add(stairLed);
+    }
+
+    for(let c = 0; c < COLS; c++){
+      const pos = seatWorld(r, c, hIdx);
+      const id = seatId(r, c);
+      const isVip = r >= 7;
+      const group = new THREE.Group();
+
+      const basePlate = new THREE.Mesh(SHARED_GEOMS.basePlate, MATS.seatBasePlate);
+      basePlate.position.y = 0.05;
+      group.add(basePlate);
+
+      const underLed = new THREE.Mesh(SHARED_GEOMS.baseLed, MATS.seatUnderLed);
+      underLed.position.set(0, 0.105, -0.43);
+      group.add(underLed);
+
+      const pedestal = new THREE.Mesh(SHARED_GEOMS.pedestal, MATS.seatPedestal);
+      pedestal.position.y = 0.36;
+      group.add(pedestal);
+
+      const seatMat = isVip ? MATS.seatVip : MATS.seatNormal;
+      const cushion = new THREE.Mesh(SHARED_GEOMS.cushion, seatMat);
+      cushion.position.y = 0.68;
+      group.add(cushion);
+
+      const back = new THREE.Mesh(SHARED_GEOMS.back, seatMat);
+      back.position.set(0, 1.10, 0.31);
+      group.add(back);
+
+      const headrest = new THREE.Mesh(SHARED_GEOMS.headrest, seatMat);
+      headrest.position.set(0, 1.54, 0.29);
+      group.add(headrest);
+
+      const armL = new THREE.Mesh(SHARED_GEOMS.armrest, MATS.seatArmrest);
+      armL.position.set(-0.43, 0.86, 0.02);
+      group.add(armL);
+      const armR = new THREE.Mesh(SHARED_GEOMS.armrest, MATS.seatArmrest);
+      armR.position.set(0.43, 0.86, 0.02);
+      group.add(armR);
+
+      group.position.set(pos.x, pos.y, pos.z);
+      scene.add(group);
+      hallSeats[hIdx][id] = { cushion, back, headrest, isVip, pos, r, c };
+    }
+  }
+}
+
+HALLS.forEach(buildTheaterHall);
+
+/* Cập nhật màu ghế 3D theo đúng Sổ đăng ký ghế thời gian thực (seatRegistry) */
+function updateSeatVisuals(){
+  const ticketHallIdx = state.ticket ? state.ticket.showtime.hallIdx : -1;
+  const mine = state.ticket ? new Set(state.ticket.seats.map(s => s.id)) : new Set();
+
+  for(let h = 0; h < HALLS.length; h++){
+    const map = hallSeats[h];
+    const isTicketHall = (h === ticketHallIdx);
+    const taken = isTicketHall && state.ticket ? state.ticket.occupied : defaultHallOccupied[h];
+
+    for(const id in map){
+      const item = map[id];
+      const regOwner = getSeatLockOwner(h, id);
+      let targetMat;
+
+      if(isTicketHall && mine.has(id)){
+        targetMat = MATS.seatMine; // Đỏ phát sáng: ghế chính chủ của bạn
+      } else if(regOwner && regOwner.ownerId !== profile.id){
+        targetMat = MATS.seatPlayerLocked; // Xanh dương: người chơi trực tuyến khác đã đặt
+      } else if(taken.has(id)){
+        targetMat = MATS.seatTaken;
+      } else {
+        targetMat = item.isVip ? MATS.seatVip : MATS.seatNormal;
+      }
+      item.cushion.material = targetMat;
+      item.back.material = targetMat;
+      item.headrest.material = targetMat;
+    }
+  }
+
+  hallDoors.forEach(d => {
+    d.statusBar.material = (state.ticket && d.hallIdx === state.ticket.showtime.hallIdx)
+      ? MATS.doorStatusUnlocked
+      : MATS.doorStatusLocked;
+  });
+}
+
+/* ========== HỆ THỐNG MULTIPLAYER THỜI GIAN THỰC (BroadcastChannel Đa Tab + WebSocket Đa Thiết Bị + Khán giả trực tuyến) ========== */
+const remotePlayers = new Map(); // id -> { id, name, color, hat, x, y, z, yaw, sitting, hallIdx, seatId, token, ts, emote, lastSeen, avatar }
+let bcChannel = null;
+let wsClient = null;
+
+function ensureRemoteAvatar(rp){
+  const badge = (rp.seatId && rp.hallIdx !== undefined && rp.hallIdx >= 0)
+    ? `${HALLS[rp.hallIdx].short} · Ghế ${rp.seatId}`
+    : "";
+  if(!rp.avatar){
+    rp.avatar = createCharacterAvatar({
+      name: rp.name,
+      color: rp.color,
+      hat: rp.hat,
+      seatBadge: badge,
+      emote: rp.emote || ""
+    });
+    scene.add(rp.avatar.root);
+  } else {
+    rp.avatar.jacketMat.color.set(rp.color || "#3b82f6");
+    rp.avatar.updateLabel(rp.name, badge, rp.emote || "");
+  }
+}
+
+/* Khởi tạo 4 khán giả trực tuyến mẫu (mỗi người giữ 1 ghế hợp lệ riêng biệt, đi lại & ngồi xem phim) để rạp luôn sống động */
+function initSimulatedOnlineViewers(){
+  const presets = [
+    { id: "sim_1", name: "Minh Anh", color: "#3b82f6", hat: "glasses3d", hallIdx: 0, seatId: "E5", movieTitle: MOVIES[0].title, showtime: "10:15" },
+    { id: "sim_2", name: "Hoàng Nam", color: "#10b981", hat: "headset",   hallIdx: 0, seatId: "F8", movieTitle: MOVIES[0].title, showtime: "10:15" },
+    { id: "sim_3", name: "Bảo Ngọc",  color: "#ec4899", hat: "crown",     hallIdx: 1, seatId: "G6", movieTitle: MOVIES[1].title, showtime: "12:30" },
+    { id: "sim_4", name: "Tuấn Kiệt", color: "#f59e0b", hat: "cap",       hallIdx: 2, seatId: "H7", movieTitle: MOVIES[2].title, showtime: "14:45" }
+  ];
+
+  presets.forEach((p, idx) => {
+    const ts = 1000 + idx;
+    const token = signSeatToken(p.id, p.hallIdx, p.seatId, ts);
+    claimExclusiveSeat(p.id, p.name, p.hallIdx, p.seatId, p.movieTitle, p.showtime, token, ts, true);
+    const rc = parseSeatRC(p.seatId);
+    const sPos = seatWorld(rc.r, rc.c, p.hallIdx);
+    const rp = {
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      hat: p.hat,
+      x: sPos.x,
+      y: sPos.y,
+      z: sPos.z,
+      yaw: 0,
+      sitting: true,
+      hallIdx: p.hallIdx,
+      seatId: p.seatId,
+      token,
+      ts,
+      emote: "",
+      isSimulated: true,
+      lastSeen: performance.now(),
+      avatar: null
+    };
+    ensureRemoteAvatar(rp);
+    rp.avatar.root.position.set(rp.x, rp.y, rp.z);
+    rp.avatar.root.rotation.y = Math.PI;
+    rp.avatar.setPose(true, 0);
+    remotePlayers.set(p.id, rp);
+  });
+}
+
+function handleIncomingSyncPacket(data){
+  if(!data || data.id === profile.id || data.roomCode !== profile.roomCode) return;
+
+  if(data.type === "SEAT_CLAIM"){
+    const res = claimExclusiveSeat(
+      data.id, data.name, data.hallIdx, data.seatId,
+      data.movieTitle, data.showtime, data.token, data.ts, data.sitting
+    );
+    if(res.ok){
+      // Nếu người chơi hiện tại đang chọn nhầm ghế đó trong modal, tự động bỏ chọn & báo ngay
+      const draftIdx = draft.seats.findIndex(s => s.id === data.seatId);
+      if(draftIdx >= 0 && draft.showtime && draft.showtime.hallIdx === data.hallIdx){
+        draft.seats.splice(draftIdx, 1);
+        renderTicketSeats();
+        updateTicketTotal();
+        toast(`⚠️ ${data.name} vừa đặt ghế ${data.seatId} theo thời gian thực!`);
+      }
+      updateSeatVisuals();
+      renderOnlineList();
+    }
+    return;
+  }
+
+  if(data.type === "LIGHT_SYNC"){
+    if(data.hallIdx === state.currentHallIdx && state.isScreening !== data.isScreening){
+      setScreeningLights(data.isScreening, true);
+    }
+    return;
+  }
+
+  if(data.type === "STATE"){
+    let rp = remotePlayers.get(data.id);
+    if(!rp){
+      rp = { id: data.id, avatar: null };
+      remotePlayers.set(data.id, rp);
+      toast(`👋 ${data.name} vừa vào rạp!`);
+    }
+    const changedMeta = (rp.name !== data.name || rp.color !== data.color || rp.hat !== data.hat || rp.seatId !== data.seatId || rp.emote !== data.emote);
+    rp.name = data.name;
+    rp.color = data.color;
+    rp.hat = data.hat;
+    rp.x = data.x;
+    rp.y = data.y;
+    rp.z = data.z;
+    rp.yaw = data.yaw;
+    rp.sitting = data.sitting;
+    rp.hallIdx = data.hallIdx;
+    rp.seatId = data.seatId;
+    rp.emote = data.emote || "";
+    rp.lastSeen = performance.now();
+
+    if(data.seatId && data.hallIdx !== undefined && data.hallIdx >= 0 && data.token){
+      claimExclusiveSeat(data.id, data.name, data.hallIdx, data.seatId, data.movieTitle || "", data.showtime || "", data.token, data.ts || Date.now(), data.sitting);
+      updateSeatVisuals();
+    }
+
+    ensureRemoteAvatar(rp);
+    if(changedMeta){
+      const badge = (rp.seatId && rp.hallIdx !== undefined && rp.hallIdx >= 0) ? `${HALLS[rp.hallIdx].short} · Ghế ${rp.seatId}` : "";
+      rp.avatar.updateLabel(rp.name, badge, rp.emote);
+      renderOnlineList();
+    }
+  }
+}
+
+function broadcastPacket(payload){
+  const msg = { ...payload, id: profile.id, roomCode: profile.roomCode };
+  if(bcChannel){
+    try{ bcChannel.postMessage(msg); }catch(e){}
+  }
+  try{
+    localStorage.setItem("galaxy_royal_mp_event", JSON.stringify({ ...msg, _nonce: Math.random() }));
+  }catch(e){}
+  if(wsClient && wsClient.readyState === 1){
+    try{ wsClient.send(JSON.stringify(msg)); }catch(e){}
+  }
+}
+
+function initRealtimeNetwork(){
+  if("BroadcastChannel" in window){
+    try{
+      if(bcChannel) bcChannel.close();
+      bcChannel = new BroadcastChannel("galaxy_royal_cinema_" + profile.roomCode);
+      bcChannel.onmessage = (ev) => handleIncomingSyncPacket(ev.data);
+    }catch(e){}
+  }
+  window.addEventListener("storage", (ev) => {
+    if(ev.key === "galaxy_royal_mp_event" && ev.newValue){
+      try{ handleIncomingSyncPacket(JSON.parse(ev.newValue)); }catch(e){}
+    }
+  });
+  // Nếu chạy kèm Node.js WebSocket server (trong gói triển khai web) thì tự động kết nối
+  if(location.protocol.startsWith("http") && location.host){
+    try{
+      const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+      wsClient = new WebSocket(`${wsProto}//${location.host}/ws`);
+      wsClient.onmessage = (ev) => {
+        try{ handleIncomingSyncPacket(JSON.parse(ev.data)); }catch(e){}
+      };
+    }catch(e){}
+  }
+}
+
+function broadcastMyState(){
+  const mySeat = state.ticket ? state.ticket.seats[0] : null;
+  broadcastPacket({
+    type: "STATE",
+    name: profile.name,
+    color: profile.color,
+    hat: profile.hat,
+    x: player.sitting && player.sitState ? player.sitState.seatPos.x : player.pos.x,
+    y: player.sitting && player.sitState ? player.sitState.seatPos.y : player.floorY,
+    z: player.sitting && player.sitState ? player.sitState.seatPos.z : player.pos.z,
+    yaw: player.yaw,
+    sitting: player.sitting,
+    hallIdx: state.ticket ? state.ticket.showtime.hallIdx : -1,
+    seatId: mySeat ? mySeat.id : "",
+    movieTitle: state.ticket ? state.ticket.movie.title : "",
+    showtime: state.ticket ? state.ticket.showtime.time : "",
+    token: state.ticket ? state.ticket.token : "",
+    ts: state.ticket ? state.ticket.ts : 0,
+    emote: (performance.now() < state.emoteUntil) ? state.emote : ""
+  });
+}
+
+function renderOnlineList(){
+  const now = performance.now();
+  // Dọn các tab đã đóng quá 8 giây (trừ khán giả mẫu)
+  for(const [id, rp] of remotePlayers.entries()){
+    if(!rp.isSimulated && now - rp.lastSeen > 8000){
+      if(rp.avatar) scene.remove(rp.avatar.root);
+      remotePlayers.delete(id);
+    }
+  }
+  const totalOnline = 1 + remotePlayers.size;
+  DOM.onlineBadge.textContent = `🟢 ${totalOnline} Online (${profile.roomCode})`;
+
+  const mySeatBadge = state.ticket ? `${HALLS[state.ticket.showtime.hallIdx].short} · ${state.ticket.seats[0].id}` : "Chưa đặt ghế";
+  let html = `<div class="online-item"><span>👤 <strong>${profile.name}</strong> (Bạn)</span><span class="seat-tag">${mySeatBadge}</span></div>`;
+  for(const rp of remotePlayers.values()){
+    const sb = (rp.seatId && rp.hallIdx >= 0) ? `${HALLS[rp.hallIdx].short} · ${rp.seatId}` : "Đang ở sảnh";
+    html += `<div class="online-item"><span>● ${rp.name} ${rp.emote || ""}</span><span class="seat-tag">${sb}</span></div>`;
+  }
+  DOM.onlinePanel.innerHTML = html;
+}
+
+/* ========== HỆ THỐNG HƯỚNG DẪN ĐƯỜNG ĐI 3D ========== */
+const arrowTex = makeArrowTexture();
+const GUIDE_COUNT = 26;
+const guideMarkers = [];
+const guideGeo = new THREE.PlaneGeometry(0.65, 0.65);
+
+for(let i = 0; i < GUIDE_COUNT; i++){
+  const mat = new THREE.MeshBasicMaterial({
+    map: arrowTex,
+    color: 0xf5c518,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false
+  });
+  const m = new THREE.Mesh(guideGeo, mat);
+  m.rotation.x = -Math.PI / 2;
+  m.visible = false;
+  scene.add(m);
+  guideMarkers.push(m);
+}
+
+const beaconRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.45, 0.68, 28),
+  new THREE.MeshBasicMaterial({color: 0xf5c518, side: THREE.DoubleSide, transparent: true, opacity: 0.85})
+);
+beaconRing.rotation.x = -Math.PI / 2;
+scene.add(beaconRing);
+
+function computeGuideWaypoints(){
+  const pts = [new THREE.Vector3(player.pos.x, player.floorY, player.pos.z)];
+
+  if(!state.ticket){
+    if(player.pos.z < 10.6){
+      pts.push(new THREE.Vector3(0, 0, 7.6));
+      pts.push(new THREE.Vector3(0, 0, 11.5));
+    }
+    pts.push(new THREE.Vector3(-12.2, 0, 16));
+    return { pts, label: "Quầy vé (bên trái sảnh)", color: 0xf5c518 };
+  }
+
+  if(!state.ticketChecked){
+    pts.push(new THREE.Vector3(0, 0, 10.2));
+    return { pts, label: "Nhân viên soát vé (giữa sảnh)", color: 0x3b82f6 };
+  }
+
+  if(!player.sitting){
+    const hIdx = state.ticket.showtime.hallIdx;
+    const hall = HALLS[hIdx];
+    const hx = hall.x;
+    const seat0 = state.ticket.seats[0];
+    const sPos = seatWorld(seat0.r, seat0.c, hIdx);
+
+    if(player.pos.z > 9.2){
+      pts.push(new THREE.Vector3(0, 0, 7.6));
+    }
+    if(player.pos.z >= 5.0){
+      if(Math.abs(player.pos.x - hx) > 1.6){
+        pts.push(new THREE.Vector3(hx, 0, 7.6));
+      }
+      pts.push(new THREE.Vector3(hx, 0, 6.9));
+      pts.push(new THREE.Vector3(hx, TOP_TIER_Y, 5.0));
+    }
+    pts.push(new THREE.Vector3(hx, sPos.y, sPos.z));
+    pts.push(new THREE.Vector3(sPos.x, sPos.y, sPos.z));
+    return { pts, label: `${hall.name} · Ghế ${seat0.id}`, color: 0x10b981 };
+  }
+
+  return null;
+}
+
+function updateWayfindingGuide(now){
+  const plan = computeGuideWaypoints();
+  if(!plan || plan.pts.length < 2 || player.sitting){
+    guideMarkers.forEach(m => { m.visible = false; });
+    beaconRing.visible = false;
+    DOM.navGuide.style.display = "none";
+    return;
+  }
+
+  DOM.navGuide.style.display = "flex";
+  const pts = plan.pts;
+  const segLengths = [];
+  let totalLen = 0;
+  for(let i = 0; i < pts.length - 1; i++){
+    const d = Math.hypot(pts[i+1].x - pts[i].x, pts[i+1].z - pts[i].z);
+    segLengths.push(d);
+    totalLen += d;
+  }
+
+  const dest = pts[pts.length - 1];
+  beaconRing.visible = true;
+  beaconRing.position.set(dest.x, dest.y + 0.05, dest.z);
+  beaconRing.material.color.setHex(plan.color);
+  const pulse = 1 + 0.15 * Math.sin(now * 0.006);
+  beaconRing.scale.set(pulse, pulse, 1);
+
+  const spacing = 1.35;
+  const numActive = Math.min(GUIDE_COUNT, Math.max(1, Math.floor(totalLen / spacing)));
+
+  for(let i = 0; i < GUIDE_COUNT; i++){
+    const m = guideMarkers[i];
+    if(i >= numActive){
+      m.visible = false;
+      continue;
+    }
+    const targetDist = (i + 0.6) * spacing;
+    let acc = 0, segIdx = 0;
+    while(segIdx < segLengths.length - 1 && acc + segLengths[segIdx] < targetDist){
+      acc += segLengths[segIdx];
+      segIdx++;
+    }
+    const segLen = Math.max(0.001, segLengths[segIdx]);
+    const t = Math.min(1, (targetDist - acc) / segLen);
+    const pA = pts[segIdx], pB = pts[segIdx + 1];
+    const mx = pA.x + (pB.x - pA.x) * t;
+    const mz = pA.z + (pB.z - pA.z) * t;
+    const my = getFloorElevation(mx, mz) + 0.05;
+
+    m.visible = true;
+    m.position.set(mx, my, mz);
+    const dirAngle = Math.atan2(pB.x - pA.x, pB.z - pA.z);
+    m.rotation.z = dirAngle + Math.PI;
+    m.material.color.setHex(plan.color);
+    const glow = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin((i * 0.45) - now * 0.008), 2);
+    m.material.opacity = glow;
+  }
+
+  const nextPt = pts[1];
+  const dx = nextPt.x - player.pos.x;
+  const dz = nextPt.z - player.pos.z;
+  const targetYaw = Math.atan2(-dx, -dz);
+  let diff = targetYaw - player.yaw;
+  while(diff > Math.PI) diff -= Math.PI * 2;
+  while(diff < -Math.PI) diff += Math.PI * 2;
+
+  let arrowChar = "⬆️";
+  let dirWord = "Đi thẳng";
+  if(Math.abs(diff) < 0.45){ arrowChar = "⬆️"; dirWord = "Đi thẳng"; }
+  else if(diff >= 0.45 && diff < 2.2){ arrowChar = "⬅️"; dirWord = "Rẽ trái"; }
+  else if(diff <= -0.45 && diff > -2.2){ arrowChar = "➡️"; dirWord = "Rẽ phải"; }
+  else { arrowChar = "⬇️"; dirWord = "Quay lại"; }
+
+  DOM.navArrow.textContent = arrowChar;
+  DOM.navText.textContent = `${dirWord} theo vạch sáng → ${plan.label} (${Math.max(1, Math.round(totalLen))}m)`;
+}
+
+/* ========== CẬP NHẬT CHUYỂN ĐỘNG CỬA PHÒNG ========== */
+function updateDoors(dt){
+  for(let i = 0; i < hallDoors.length; i++){
+    const d = hallDoors[i];
+    const dist = Math.hypot(player.pos.x - d.hx, player.pos.z - 5.1);
+    const allowed = isHallUnlocked(d.hallIdx);
+
+    if(allowed && dist < 3.6 && !d.manualLockClosed){
+      d.targetOpen = 1;
+    } else {
+      if(dist >= 3.6) d.manualLockClosed = false;
+      d.targetOpen = 0;
+    }
+    d.open += (d.targetOpen - d.open) * Math.min(1, dt * 6);
+    const angle = d.open * (Math.PI * 0.48);
+    d.leftPivot.rotation.y = -angle;
+    d.rightPivot.rotation.y = angle;
+  }
+}
+
+/* ========== BẬT / TẮT ĐÈN PHÒNG CHIẾU KHI CHIẾU PHIM ========== */
+function setScreeningLights(screening, silent = false){
+  state.isScreening = screening;
+  if(screening){
+    MATS.ceilingBulb.color.setHex(0x09090f);
+    MATS.wallSconceBulb.color.setHex(0x12080a);
+    MATS.stepLedStrip.color.setHex(0x773812);
+    MATS.seatUnderLed.color.setHex(0x552208);
+    theaterCeilingLightL.intensity = 0;
+    theaterCeilingLightR.intensity = 0;
+    theaterAmbient.intensity = 0.05;
+    screenLight.intensity = 2.85;
+    DOM.lightToggleBtn.textContent = "💡 Bật đèn phòng chiếu (L)";
+    if(!silent) toast("🎬 Đang chiếu phim — Đã tắt đèn phòng chiếu");
+  } else {
+    MATS.ceilingBulb.color.setHex(0xffe4b5);
+    MATS.wallSconceBulb.color.setHex(0xffb86c);
+    MATS.stepLedStrip.color.setHex(0xff9933);
+    MATS.seatUnderLed.color.setHex(0xffaa44);
+    theaterCeilingLightL.intensity = 0.85;
+    theaterCeilingLightR.intensity = 0.85;
+    theaterAmbient.intensity = 0.78;
+    screenLight.intensity = 1.9;
+    DOM.lightToggleBtn.textContent = "💡 Tắt đèn / Chiếu phim (L)";
+    if(!silent) toast("💡 Đã bật sáng đèn phòng chiếu");
+  }
+}
+
+function syncActiveHallLights(){
+  const idx = getNearestHallIdx(player.pos.x);
+  if(idx !== state.currentHallIdx){
+    state.currentHallIdx = idx;
+    const hx = HALLS[idx].x;
+    screenLight.position.x = hx;
+    theaterAmbient.position.x = hx;
+    theaterCeilingLightL.position.x = hx - 5.5;
+    theaterCeilingLightR.position.x = hx + 5.5;
+  }
+}
+
+/* ========== DUST ========== */
+const dustCount = 180;
+const dustPos = new Float32Array(dustCount*3);
+const dustVel = [];
+for(let i=0;i<dustCount;i++){
+  dustPos[i*3] = (Math.random()-0.5)*26;
+  dustPos[i*3+1] = Math.random()*8+0.5;
+  dustPos[i*3+2] = (Math.random()-0.5)*34+5;
+  dustVel.push({x:(Math.random()-0.5)*0.004, y:(Math.random()-0.5)*0.003, z:(Math.random()-0.5)*0.004});
+}
+const dustGeo = new THREE.BufferGeometry();
+dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
+const dustPoints = new THREE.Points(
+  dustGeo,
+  new THREE.PointsMaterial({color:0xffddaa, size:0.04, transparent:true, opacity:0.35, sizeAttenuation:true, depthWrite:false})
+);
+scene.add(dustPoints);
+
+/* ========== PLAYER & CAMERA (Hỗ trợ cả góc nhìn thứ 1 và góc nhìn thứ 3 để ngắm nhân vật) ========== */
+const player = {
+  pos: new THREE.Vector3(0, 0, 22),
+  floorY: 0,
+  yaw: 0, pitch: 0, walkPhase: 0,
+  sitting: false, sitState: null, standing: false,
+  leanOffset: 0, swayPhase: 0
+};
+
+function toggleCameraMode(){
+  state.thirdPerson = !state.thirdPerson;
+  DOM.camToggleBtn.textContent = state.thirdPerson ? "🎥 Góc nhìn: Thứ ba (V)" : "🎥 Góc nhìn: Thứ nhất (V)";
+  if(localAvatar){
+    localAvatar.root.visible = state.thirdPerson || player.sitting;
+  }
+  toast(state.thirdPerson ? "🎥 Đã chuyển sang góc nhìn thứ 3 (Xem nhân vật)" : "🎥 Đã chuyển sang góc nhìn thứ 1");
+}
+
+function triggerEmote(emoji){
+  state.emote = emoji;
+  state.emoteUntil = performance.now() + 3500;
+  if(localAvatar){
+    const badge = state.ticket ? `${HALLS[state.ticket.showtime.hallIdx].short} · Ghế ${state.ticket.seats[0].id}` : "";
+    localAvatar.updateLabel(profile.name + " (Bạn)", badge, emoji);
+  }
+  broadcastMyState();
+  beep(780, 0.08);
+  toast(`Bạn đã thả cảm xúc ${emoji}`);
+}
+
+function updateCamera(dt){
+  const targetFloorY = getFloorElevation(player.pos.x, player.pos.z);
+  player.floorY += (targetFloorY - player.floorY) * Math.min(1, (dt || 0.016) * 14);
+
+  if(localAvatar){
+    localAvatar.root.visible = state.thirdPerson || player.sitting;
+    if(player.sitting && player.sitState){
+      const sp = player.sitState.seatPos;
+      localAvatar.root.position.set(sp.x, sp.y, sp.z);
+      localAvatar.root.rotation.y = 0;
+      localAvatar.setPose(true, 0);
+    } else {
+      localAvatar.root.position.set(player.pos.x, player.floorY, player.pos.z);
+      localAvatar.root.rotation.y = player.yaw;
+      localAvatar.setPose(false, player.walkPhase);
+    }
+  }
+
+  if(player.sitting && player.sitState) return;
+
+  const bob = Math.sin(player.walkPhase) * 0.04;
+  if(state.thirdPerson){
+    const camDist = 2.5;
+    const camX = player.pos.x + Math.sin(player.yaw) * camDist;
+    const camZ = player.pos.z + Math.cos(player.yaw) * camDist;
+    camera.position.set(camX, player.floorY + CFG.eyeHeight + 0.45 + bob, camZ);
+    camera.rotation.set(player.pitch - 0.12, player.yaw, 0);
+  } else {
+    camera.position.set(player.pos.x, player.floorY + CFG.eyeHeight + bob, player.pos.z);
+    camera.rotation.set(player.pitch, player.yaw, 0);
+  }
+}
+
+/* ========== INPUT ========== */
+const keys = {};
+document.addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  if(state.modalOpen || !DOM.startScreen.classList.contains("hide")) return;
+
+  if(e.code === "KeyE"){
+    if(player.sitting){ standUp(); return; }
+    handleInteract();
+  }
+  if(e.code === "KeyV"){
+    toggleCameraMode();
+  }
+  if(e.code === "KeyL"){
+    setScreeningLights(!state.isScreening);
+    broadcastPacket({ type: "LIGHT_SYNC", hallIdx: state.currentHallIdx, isScreening: state.isScreening });
+    beep(state.isScreening ? 520 : 740, 0.1);
+  }
+  if(e.code === "Digit1") triggerEmote("👏");
+  if(e.code === "Digit2") triggerEmote("😂");
+  if(e.code === "Digit3") triggerEmote("😮");
+  if(e.code === "Digit4") triggerEmote("❤️");
+  if(e.code === "Escape"){
+    if(state.modalOpen){
+      document.querySelectorAll(".modal-backdrop.open").forEach(m => m.classList.remove("open"));
+      state.modalOpen = false;
+      if(!player.sitting) canvas.requestPointerLock();
+    }
+  }
+});
+document.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+DOM.camToggleBtn.addEventListener("click", toggleCameraMode);
+DOM.lightToggleBtn.addEventListener("click", () => {
+  setScreeningLights(!state.isScreening);
+  broadcastPacket({ type: "LIGHT_SYNC", hallIdx: state.currentHallIdx, isScreening: state.isScreening });
+  beep(state.isScreening ? 520 : 740, 0.1);
+});
+document.querySelectorAll(".emote-btn").forEach(btn => {
+  btn.addEventListener("click", () => triggerEmote(btn.dataset.emote));
+});
+
+document.addEventListener("pointerlockchange", () => {
+  const locked = document.pointerLockElement === canvas;
+  if(locked){
+    DOM.lockHint.classList.remove("show");
+    DOM.crosshair.classList.add("show");
+  } else {
+    DOM.crosshair.classList.remove("show");
+    if(!state.modalOpen && DOM.startScreen.classList.contains("hide") && !player.sitting){
+      DOM.lockHint.classList.add("show");
+    }
+  }
+});
+
+canvas.addEventListener("click", () => {
+  if(!state.modalOpen && !player.sitting && DOM.startScreen.classList.contains("hide")){
+    canvas.requestPointerLock();
+  }
+});
+
+document.addEventListener("mousemove", (e) => {
+  if(document.pointerLockElement !== canvas) return;
+  player.yaw -= e.movementX * CFG.mouseSensitivity;
+  player.pitch -= e.movementY * CFG.mouseSensitivity;
+  player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch));
+});
+
+/* ========== INTERACTION ========== */
+function findNearestSeat(){
+  const hIdx = getNearestHallIdx(player.pos.x);
+  let best = null, bestDist = CFG.seatRadius;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const pos = seatWorld(r, c, hIdx);
+    const d = Math.hypot(player.pos.x - pos.x, player.pos.z - pos.z);
+    if(d < bestDist){
+      bestDist = d;
+      best = { r, c, id: seatId(r,c), pos, hallIdx: hIdx, hallName: HALLS[hIdx].short };
+    }
+  }
+  return best;
+}
+
+function getNearbyInteractable(){
+  const px = player.pos.x, pz = player.pos.z;
+  if(Math.abs(px) < 2.6 && pz > 8.0 && pz < 11.4) return {type:"usher"};
+  const nearHallIdx = getNearestHallIdx(px);
+  const nearDoor = hallDoors[nearHallIdx];
+  if(nearDoor && Math.hypot(px - nearDoor.hx, pz - 5.1) < 2.5 && pz >= 4.6){
+    return {type:"door", data: nearDoor};
+  }
+  if(pz < 5.0){
+    const seat = findNearestSeat();
+    if(seat) return {type:"seat", data: seat};
+  }
+  if(pz > 10 && pz < 20){
+    const dx1 = px+13, dz1 = pz-16;
+    if(dx1*dx1 + dz1*dz1 < CFG.interactionRadius*CFG.interactionRadius) return {type:"ticket"};
+    const dx2 = px-13, dz2 = pz-16;
+    if(dx2*dx2 + dz2*dz2 < CFG.interactionRadius*CFG.interactionRadius) return {type:"snack"};
+  }
+  return null;
+}
+
+let currentInteractable = null;
+
+function updatePrompt(){
+  if(player.sitting){ DOM.prompt.classList.remove("show"); return; }
+  const near = getNearbyInteractable();
+  currentInteractable = near;
+  if(!near){ DOM.prompt.classList.remove("show"); return; }
+  DOM.prompt.classList.remove("info","danger");
+
+  if(near.type === "ticket"){
+    DOM.promptText.textContent = state.ticket ? "Đổi ghế / Mua lại vé định danh" : "Mua vé xem phim (1 Nhân vật = 1 Ghế)";
+    DOM.prompt.classList.add("show");
+  } else if(near.type === "snack"){
+    DOM.promptText.textContent = state.snacksPurchased ? "Mua thêm bắp nước" : "Mua bắp nước";
+    DOM.prompt.classList.add("show");
+  } else if(near.type === "usher"){
+    if(!state.ticket){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = "Bạn cần mua vé định danh trước";
+    } else if(!state.ticketChecked){
+      DOM.promptText.textContent = `Soát vé định danh (${state.ticket.showtime.hall} · Ghế ${state.ticket.seats[0].id})`;
+    } else {
+      DOM.prompt.classList.add("info");
+      DOM.promptText.textContent = `Vé hợp lệ — đi theo vạch sáng tới ${state.ticket.showtime.hall}`;
+    }
+    DOM.prompt.classList.add("show");
+  } else if(near.type === "door"){
+    const d = near.data;
+    const hName = HALLS[d.hallIdx].name;
+    if(!state.ticket){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `🔒 ${hName} — Cần mua vé trước`;
+    } else if(!state.ticketChecked){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `🔒 ${hName} — Vui lòng soát vé trước`;
+    } else if(state.ticket.showtime.hallIdx !== d.hallIdx){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `🚫 Sai phòng! Vé của bạn ở ${state.ticket.showtime.hall}`;
+    } else {
+      DOM.prompt.classList.add("info");
+      DOM.promptText.textContent = d.targetOpen > 0.5 ? `Đóng cửa ${hName}` : `Mở cửa vào ${hName}`;
+    }
+    DOM.prompt.classList.add("show");
+  } else if(near.type === "seat"){
+    const seat = near.data;
+    const lockOwner = getSeatLockOwner(seat.hallIdx, seat.id);
+    if(lockOwner && lockOwner.ownerId !== profile.id){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `🔒 Ghế ${seat.id} đã thuộc về ${lockOwner.ownerName} (Cấm ngồi trùng)`;
+      DOM.prompt.classList.add("show");
+      return;
+    }
+    if(!state.ticket){
+      DOM.prompt.classList.add("info");
+      DOM.promptText.textContent = `${seat.hallName} · Ghế ${seat.id} · Bạn chưa có vé`;
+      DOM.prompt.classList.add("show");
+    } else if(!state.ticketChecked){
+      DOM.prompt.classList.add("info");
+      DOM.promptText.textContent = `${seat.hallName} · Ghế ${seat.id} · Cần soát vé trước`;
+      DOM.prompt.classList.add("show");
+    } else if(seat.hallIdx !== state.ticket.showtime.hallIdx){
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `Sai phòng! Vé của bạn ở ${state.ticket.showtime.hall}`;
+      DOM.prompt.classList.add("show");
+    } else if(state.ticket.seats.some(s => s.id === seat.id)){
+      DOM.promptText.textContent = `Ngồi vào ghế chính chủ ${seat.id} (${seat.hallName}) — Chiếu phim`;
+      DOM.prompt.classList.add("show");
+    } else {
+      DOM.prompt.classList.add("danger");
+      DOM.promptText.textContent = `🚫 Ghế ${seat.id} không phải ghế trên vé của bạn (${state.ticket.seats[0].id})`;
+      DOM.prompt.classList.add("show");
+    }
+  }
+}
+
+function handleInteract(){
+  if(!currentInteractable) return;
+  const t = currentInteractable.type;
+
+  if(t === "ticket") openTicketModal();
+  else if(t === "snack") openSnackModal();
+  else if(t === "usher"){
+    if(!state.ticket){ toast("Bạn cần mua vé định danh trước"); beep(220,0.15); return; }
+    const s0 = state.ticket.seats[0];
+    const checkAuth = verifyStrictSeatAccess(profile.id, state.ticket.showtime.hallIdx, s0.id, state.ticket);
+    if(!checkAuth.ok){
+      toast(checkAuth.msg);
+      beep(220, 0.2);
+      return;
+    }
+    if(state.ticketChecked){ toast(`Vé đã được soát — hãy đi theo vạch sáng tới ${state.ticket.showtime.hall}`); return; }
+    state.ticketChecked = true;
+    updateHUD();
+    beep(880,0.15); setTimeout(()=>beep(1100,0.15), 150);
+    toast(`✓ Xác thực mã vé ${state.ticket.token} hợp lệ — Mời vào ${state.ticket.showtime.hall} · Ghế ${s0.id}!`);
+  }
+  else if(t === "door"){
+    const d = currentInteractable.data;
+    if(!state.ticket){ toast("🔒 Bạn cần mua vé ở quầy trước!"); beep(220, 0.15); return; }
+    if(!state.ticketChecked){ toast("🔒 Bạn cần soát vé với nhân viên trước!"); beep(220, 0.15); return; }
+    if(state.ticket.showtime.hallIdx !== d.hallIdx){
+      toast(`🚫 Cửa khóa! Vé của bạn thuộc ${state.ticket.showtime.hall}, hãy đi theo vạch sáng chỉ đường!`);
+      beep(220, 0.2);
+      return;
+    }
+    d.manualLockClosed = d.targetOpen > 0.5;
+    d.targetOpen = d.manualLockClosed ? 0 : 1;
+    beep(d.targetOpen ? 620 : 420, 0.1);
+  }
+  else if(t === "seat"){
+    const seat = currentInteractable.data;
+    const lockOwner = getSeatLockOwner(seat.hallIdx, seat.id);
+    if(lockOwner && lockOwner.ownerId !== profile.id){
+      toast(`🚫 Cấm ngồi trùng! Ghế ${seat.id} thuộc sở hữu của ${lockOwner.ownerName}.`);
+      beep(220, 0.2);
+      return;
+    }
+    if(!state.ticket){ toast("Bạn cần mua vé trước khi ngồi"); beep(220,0.15); return; }
+    if(!state.ticketChecked){ toast("Bạn cần soát vé với nhân viên trước"); beep(220,0.15); return; }
+    const verify = verifyStrictSeatAccess(profile.id, seat.hallIdx, seat.id, state.ticket);
+    if(!verify.ok){
+      toast(verify.msg);
+      beep(220, 0.2);
+      return;
+    }
+    sitDown(seat);
+  }
+}
+
+/* ========== SIT / STAND ========== */
+function sitDown(seat){
+  if(player.sitting) return;
+  beep(880,0.15);
+  const seatPos = seatWorld(seat.r, seat.c, seat.hallIdx);
+  const targetY = seatPos.y + CFG.seatEyeHeight;
+  const dz = Math.abs(-9.65 - seatPos.z);
+  const dy = 5.45 - targetY;
+  const idealPitch = Math.atan2(dy, dz) * 0.65;
+
+  player.sitState = {
+    t: 0,
+    from: camera.position.clone(),
+    fromRot: {yaw: player.yaw, pitch: player.pitch},
+    to: new THREE.Vector3(seatPos.x, targetY, seatPos.z - 0.04),
+    toRot: {yaw: 0, pitch: idealPitch},
+    seat, seatPos
+  };
+  player.sitting = true;
+  player.standing = false;
+  player.leanOffset = 0;
+  document.exitPointerLock();
+  DOM.seatedPanel.classList.add("show");
+  DOM.seatedTitle.textContent = `Đang ngồi ghế ${seat.id} · ${HALLS[seat.hallIdx].name} (${profile.name})`;
+  DOM.seatedSub.textContent = `${state.ticket.movie.title} · Mã vé ${state.ticket.token} · Nhấn E đứng dậy · V đổi góc nhìn · 1-4 thả cảm xúc`;
+  state.seated = seat;
+  setScreeningLights(true);
+  broadcastMyState();
+  updateHUD();
+}
+
+function standUp(){
+  if(!player.sitting) return;
+  beep(440,0.15);
+  DOM.seatedPanel.classList.remove("show");
+  const st = player.sitState;
+  const hIdx = st.seat.hallIdx;
+  const hx = HALLS[hIdx].x;
+  const safeStandX = hx;
+  const safeStandZ = Math.min(4.35, Math.max(-6.0, st.seatPos.z));
+
+  player.sitState = {
+    t: 0,
+    from: camera.position.clone(),
+    fromRot: {yaw: player.yaw, pitch: player.pitch},
+    to: new THREE.Vector3(safeStandX, st.seatPos.y + CFG.eyeHeight, safeStandZ),
+    toRot: {yaw: st.fromRot.yaw, pitch: 0},
+    seat: st.seat, seatPos: st.seatPos
+  };
+  player.sitting = false;
+  player.standing = true;
+  player.leanOffset = 0;
+  state.seated = null;
+  if(!videoEl) setScreeningLights(false, true);
+  broadcastMyState();
+  updateHUD();
+}
+
+function updateSitAnimation(dt){
+  if(!player.sitState) return;
+  const st = player.sitState;
+  st.t = Math.min(1, st.t + dt*1.8);
+  const e = st.t < 0.5 ? 2*st.t*st.t : 1 - Math.pow(-2*st.t+2,2)/2;
+  camera.position.lerpVectors(st.from, st.to, e);
+  let dyaw = st.toRot.yaw - st.fromRot.yaw;
+  while(dyaw > Math.PI) dyaw -= Math.PI*2;
+  while(dyaw < -Math.PI) dyaw += Math.PI*2;
+  const yaw = st.fromRot.yaw + dyaw*e;
+  const pitch = st.fromRot.pitch + (st.toRot.pitch - st.fromRot.pitch)*e;
+  camera.rotation.set(pitch, yaw, 0);
+  if(st.t >= 1){
+    if(player.sitting){
+      player.yaw = st.toRot.yaw;
+      player.pitch = st.toRot.pitch;
+    }
+    if(player.standing){
+      player.standing = false;
+      player.pos.set(st.to.x, 0, st.to.z);
+      moveAndResolveCollisions(0, 0);
+      player.floorY = getFloorElevation(player.pos.x, player.pos.z);
+      player.yaw = st.fromRot.yaw;
+      player.pitch = 0;
+      player.sitState = null;
+      canvas.requestPointerLock();
+    }
+  }
+}
+
+/* ========== SEATED SWAY ========== */
+function updateSeatedSway(dt){
+  if(!player.sitting || (player.sitState && player.sitState.t < 1)) return;
+  player.swayPhase += dt * 1.5;
+
+  const autoSway = Math.sin(player.swayPhase * CFG.swaySpeed * 500) * 0.015;
+  const autoPitch = Math.cos(player.swayPhase * CFG.swaySpeed * 400) * 0.008;
+  const autoRoll = Math.sin(player.swayPhase * CFG.swaySpeed * 350) * 0.010;
+
+  let targetLean = 0;
+  if(keys["KeyA"] || keys["ArrowLeft"]) targetLean = 0.35;
+  if(keys["KeyD"] || keys["ArrowRight"]) targetLean = -0.35;
+  player.leanOffset += (targetLean - player.leanOffset) * Math.min(1, dt * 8);
+
+  const basePos = player.sitState.to;
+  const swayX = Math.sin(player.swayPhase * 0.9) * 0.012;
+  const swayY = Math.sin(player.swayPhase * 1.3) * 0.008;
+
+  if(state.thirdPerson){
+    camera.position.set(basePos.x + player.leanOffset * 0.2, basePos.y + 0.55, basePos.z + 1.9);
+    camera.rotation.set(-0.15, 0, autoRoll * 0.5);
+  } else {
+    camera.position.x = basePos.x + swayX + player.leanOffset * 0.15;
+    camera.position.y = basePos.y + swayY;
+    camera.position.z = basePos.z;
+    camera.rotation.z = autoRoll + player.leanOffset;
+    camera.rotation.x += autoPitch * 0.3;
+    camera.rotation.y += autoSway;
+  }
+}
+
+/* ========== TICKET MODAL (Chống khai khống chỗ ngồi & Chống đặt trùng thời gian thực) ========== */
+function openTicketModal(){
+  state.modalOpen = true;
+  document.exitPointerLock();
+  draft.movie = null; draft.showtime = null; draft.seats = []; draft.occupied = new Set();
+  renderTicketMovies();
+  $("#tm-times-wrap").style.display = "none";
+  $("#tm-seats-wrap").style.display = "none";
+  $("#tm-confirm").disabled = true;
+  $("#tm-total").textContent = "0₫";
+  $("#ticket-modal").classList.add("open");
+}
+
+function renderTicketMovies(){
+  const wrap = $("#tm-movies");
+  wrap.innerHTML = MOVIES.map(m => `
+    <button class="movie-chip" data-id="${m.id}">
+      <div class="mini-poster" style="background:linear-gradient(160deg,${m.c1},${m.c2})"></div>
+      <div class="movie-info">
+        <div class="movie-title">${m.title}</div>
+        <div class="movie-meta">★ ${m.score} · ${m.age} · ${m.duration}p</div>
+      </div>
+    </button>
+  `).join("");
+  wrap.querySelectorAll(".movie-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      wrap.querySelectorAll(".movie-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      draft.movie = MOVIES.find(m => m.id === chip.dataset.id);
+      draft.showtime = null; draft.seats = [];
+      renderTicketTimes();
+      $("#tm-times-wrap").style.display = "block";
+      $("#tm-seats-wrap").style.display = "none";
+      $("#tm-confirm").disabled = true;
+      $("#tm-total").textContent = "0₫";
+    });
+  });
+}
+
+function renderTicketTimes(){
+  const list = getShowtimes(draft.movie);
+  const wrap = $("#tm-times");
+  wrap.innerHTML = list.map(s => `
+    <button class="time-chip" data-id="${s.id}">
+      <strong>${s.time}</strong>
+      <span>${s.hall}${s.priceAdd ? " · +"+(s.priceAdd/1000)+"k" : ""}</span>
+    </button>
+  `).join("");
+  wrap.querySelectorAll(".time-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      wrap.querySelectorAll(".time-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      draft.showtime = list.find(s => s.id === chip.dataset.id);
+      draft.occupied = getOccupied(draft.showtime.id);
+      draft.seats = [];
+      renderTicketSeats();
+      $("#tm-seats-wrap").style.display = "block";
+      updateTicketTotal();
+    });
+  });
+}
+
+function renderTicketSeats(){
+  const wrap = $("#tm-seats");
+  wrap.innerHTML = "";
+  const hIdx = draft.showtime ? draft.showtime.hallIdx : 0;
+
+  for(let r=0;r<ROWS;r++){
+    const row = document.createElement("div");
+    row.className = "sp-row";
+    const label = document.createElement("span");
+    label.className = "sp-label"; label.textContent = ROW_LETTERS[r];
+    row.appendChild(label);
+    for(let c=0;c<COLS;c++){
+      if(c === AISLE_AFTER+1){
+        const gap = document.createElement("span");
+        gap.className = "sp-gap"; row.appendChild(gap);
+      }
+      const id = seatId(r,c);
+      const btn = document.createElement("button");
+      btn.className = "sp-seat";
+      btn.dataset.seat = id; btn.dataset.r = r; btn.dataset.c = c;
+      if(r >= 7) btn.classList.add("vip");
+
+      const lockOwner = getSeatLockOwner(hIdx, id);
+      if(lockOwner && lockOwner.ownerId !== profile.id){
+        btn.classList.add("player-locked");
+        btn.disabled = true;
+        btn.title = `Ghế ${id} đã được giữ bởi ${lockOwner.ownerName}`;
+      } else if(draft.occupied.has(id)){
+        btn.classList.add("occupied");
+        btn.disabled = true;
+        btn.title = `Ghế ${id} đã bán`;
+      } else {
+        if(draft.seats.some(s => s.id === id)) btn.classList.add("selected");
+        btn.title = `Ghế ${id} — Nhấp để chọn`;
+        btn.addEventListener("click", () => selectSingleDraftSeat(r,c,btn));
+      }
+      row.appendChild(btn);
+    }
+    wrap.appendChild(row);
+  }
+}
+
+/* Bắt buộc 1 nhân vật = 1 ghế: Khi chọn ghế mới sẽ tự động thay thế ghế đang chọn (không cho gom nhiều ghế) */
+function selectSingleDraftSeat(r, c, btn){
+  const id = seatId(r,c);
+  const hIdx = draft.showtime.hallIdx;
+  const lockOwner = getSeatLockOwner(hIdx, id);
+  if(lockOwner && lockOwner.ownerId !== profile.id){
+    toast(`🚫 Ghế ${id} vừa được ${lockOwner.ownerName} đặt!`);
+    renderTicketSeats();
+    return;
+  }
+
+  const alreadySelected = draft.seats.length === 1 && draft.seats[0].id === id;
+  $("#tm-seats").querySelectorAll(".sp-seat.selected").forEach(el => el.classList.remove("selected"));
+
+  if(alreadySelected){
+    draft.seats = [];
+  } else {
+    draft.seats = [{ id, r, c, price: seatPrice(r) + draft.showtime.priceAdd }];
+    btn.classList.add("selected");
+  }
+  updateTicketTotal();
+}
+
+function updateTicketTotal(){
+  const total = draft.seats.reduce((s,x) => s+x.price, 0);
+  $("#tm-total").textContent = money(total);
+  $("#tm-confirm").disabled = draft.seats.length !== 1;
+}
+
+$("#tm-confirm").addEventListener("click", () => {
+  if(draft.seats.length !== 1) return;
+  const chosen = draft.seats[0];
+  const hIdx = draft.showtime.hallIdx;
+  const ts = Date.now();
+  const token = signSeatToken(profile.id, hIdx, chosen.id, ts);
+
+  const claimRes = claimExclusiveSeat(
+    profile.id, profile.name, hIdx, chosen.id,
+    draft.movie.title, draft.showtime.time, token, ts, false
+  );
+  if(!claimRes.ok){
+    toast("🚫 " + claimRes.reason);
+    beep(220, 0.2);
+    renderTicketSeats();
+    return;
+  }
+
+  state.ticket = {
+    movie: draft.movie,
+    showtime: draft.showtime,
+    seats: [chosen],
+    occupied: draft.occupied,
+    token,
+    ts
+  };
+  state.ticketChecked = false;
+  rebuildLocalAvatarMesh();
+  updateSeatVisuals();
+  updateHUD();
+  renderOnlineList();
+
+  broadcastPacket({
+    type: "SEAT_CLAIM",
+    name: profile.name,
+    hallIdx: hIdx,
+    seatId: chosen.id,
+    movieTitle: draft.movie.title,
+    showtime: draft.showtime.time,
+    token,
+    ts,
+    sitting: false
+  });
+  broadcastMyState();
+
+  $("#ticket-modal").classList.remove("open");
+  state.modalOpen = false;
+  beep(880,0.2);
+  toast(`✓ Đã khóa độc quyền ghế ${chosen.id} (${draft.showtime.hall}) · Mã vé: ${token}`);
+  canvas.requestPointerLock();
+});
+
+/* ========== SNACK MODAL ========== */
+function openSnackModal(){
+  state.modalOpen = true;
+  document.exitPointerLock();
+  draft.snacks = {...state.snacks};
+  renderSnackModal();
+  $("#snack-modal").classList.add("open");
+}
+
+function renderSnackModal(){
+  const wrap = $("#snack-grid-m");
+  wrap.innerHTML = SNACKS.map(s => {
+    const q = draft.snacks[s.id] || 0;
+    return `
+      <div class="snack-item">
+        <div class="snack-head">
+          <span class="icon">${s.icon}</span>
+          <div><h4>${s.name}</h4><div class="muted">${s.desc}</div></div>
+        </div>
+        <div class="price">${money(s.price)}</div>
+        <div class="qty-ctrl" data-id="${s.id}">
+          <button class="btn-qty" data-act="minus">−</button>
+          <span class="count">${q}</span>
+          <button class="btn-qty" data-act="plus">+</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+  wrap.querySelectorAll(".qty-ctrl").forEach(ctrl => {
+    const id = ctrl.dataset.id;
+    ctrl.querySelectorAll(".btn-qty").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const cur = draft.snacks[id] || 0;
+        if(btn.dataset.act === "plus") draft.snacks[id] = Math.min(cur+1, 10);
+        else if(cur > 1) draft.snacks[id] = cur-1;
+        else delete draft.snacks[id];
+        ctrl.querySelector(".count").textContent = draft.snacks[id] || 0;
+        updateSnackTotal();
+      });
+    });
+  });
+  updateSnackTotal();
+}
+
+function updateSnackTotal(){
+  const total = Object.entries(draft.snacks).reduce((sum,[id,qty]) => {
+    const s = SNACKS.find(x => x.id === id);
+    return sum + (s ? s.price*qty : 0);
+  }, 0);
+  $("#sm-total").textContent = money(total);
+}
+
+$("#sm-confirm").addEventListener("click", () => {
+  state.snacks = {...draft.snacks};
+  state.snacksPurchased = Object.keys(state.snacks).length > 0;
+  $("#snack-modal").classList.remove("open");
+  state.modalOpen = false;
+  updateHUD();
+  if(state.snacksPurchased){ beep(880,0.2); toast("Đã mua bắp nước!"); }
+  canvas.requestPointerLock();
+});
+
+/* ========== MODAL CLOSE ========== */
+document.querySelectorAll("[data-close]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById(btn.dataset.close).classList.remove("open");
+    state.modalOpen = false;
+    canvas.requestPointerLock();
+  });
+});
+document.querySelectorAll(".modal-backdrop").forEach(bd => {
+  bd.addEventListener("click", (e) => {
+    if(e.target === bd){
+      bd.classList.remove("open");
+      state.modalOpen = false;
+      canvas.requestPointerLock();
+    }
+  });
+});
+
+/* ========== VIDEO UPLOAD ========== */
+let videoEl = null, videoTex = null;
+function loadVideo(file){
+  stopVideo();
+  const url = URL.createObjectURL(file);
+  videoEl = document.createElement("video");
+  videoEl.src = url;
+  videoEl.loop = true;
+  videoEl.muted = false;
+  videoEl.volume = 0.5;
+  videoEl.playsInline = true;
+  videoEl.play().catch(err => toast("Không thể phát video: "+err.message));
+  videoTex = new THREE.VideoTexture(videoEl);
+  videoTex.minFilter = THREE.LinearFilter;
+  videoTex.magFilter = THREE.LinearFilter;
+  screenMaterial.map = videoTex;
+  screenMaterial.needsUpdate = true;
+  DOM.videoBtn.style.display = "none";
+  DOM.videoStopBtn.style.display = "block";
+  setScreeningLights(true, true);
+  toast("🎬 Đã tải phim lên màn hình lớn & tắt đèn phòng chiếu!");
+  beep(880,0.2);
+}
+function stopVideo(){
+  if(videoEl){ try{videoEl.pause()}catch(e){} URL.revokeObjectURL(videoEl.src); videoEl = null; }
+  if(videoTex){ videoTex.dispose(); videoTex = null; }
+  screenMaterial.map = screenTex;
+  screenMaterial.needsUpdate = true;
+  DOM.videoBtn.style.display = "block";
+  DOM.videoStopBtn.style.display = "none";
+  if(!player.sitting) setScreeningLights(false, true);
+}
+DOM.videoBtn.addEventListener("click", () => $("#video-input").click());
+$("#video-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(file) loadVideo(file);
+  e.target.value = "";
+});
+DOM.videoStopBtn.addEventListener("click", () => { stopVideo(); toast("Đã tắt video & bật lại đèn"); });
+
+/* ========== HUD ========== */
+let lastLocationLabel = "";
+function getLocationLabel(){
+  if(player.pos.z > 10.2) return "🏛️ Sảnh chính";
+  if(player.pos.z >= 5.0) return "🚶 Hành lang 6 phòng";
+  const h = HALLS[getNearestHallIdx(player.pos.x)];
+  return `🎬 ${h.short}`;
+}
+
+function updateHUD(){
+  if(state.ticket){
+    DOM.chipTicket.textContent = `🎫 ${HALLS[state.ticket.showtime.hallIdx].short}: Ghế ${state.ticket.seats[0].id}`;
+    DOM.chipTicket.classList.add("ok");
+  } else {
+    DOM.chipTicket.textContent = "🎫 Chưa có vé";
+    DOM.chipTicket.classList.remove("ok");
+  }
+  if(state.ticketChecked){
+    DOM.chipCheck.textContent = "✓ Đã soát vé";
+    DOM.chipCheck.classList.add("ok");
+    DOM.chipCheck.classList.remove("warn");
+  } else if(state.ticket){
+    DOM.chipCheck.textContent = "⏳ Chưa soát";
+    DOM.chipCheck.classList.remove("ok");
+    DOM.chipCheck.classList.add("warn");
+  } else {
+    DOM.chipCheck.textContent = "⏳ Chưa soát";
+    DOM.chipCheck.classList.remove("ok","warn");
+  }
+  if(state.snacksPurchased){
+    DOM.chipSnack.textContent = "🍿 Đã mua";
+    DOM.chipSnack.classList.add("ok");
+  } else {
+    DOM.chipSnack.textContent = "🍿 Chưa mua";
+    DOM.chipSnack.classList.remove("ok");
+  }
+
+  const loc = getLocationLabel();
+  if(loc !== lastLocationLabel){
+    lastLocationLabel = loc;
+    DOM.chipRoom.textContent = loc;
+  }
+
+  if(!state.ticket) DOM.objText.textContent = "Đến quầy vé bên trái để đăng ký 1 ghế định danh";
+  else if(!state.ticketChecked) DOM.objText.textContent = `Đưa vé định danh cho nhân viên soát (${state.ticket.showtime.hall})`;
+  else if(!player.sitting) DOM.objText.textContent = `Vào đúng ${state.ticket.showtime.hall}, ngồi ghế chính chủ ${state.ticket.seats[0].id}`;
+  else DOM.objText.textContent = "Đang xem phim thời gian thực cùng mọi người — nhấn E để đứng dậy";
+}
+
+/* ========== SCREEN RENDER (Đồng bộ thời gian thực theo đồng hồ chung Date.now() để mọi người xem cùng 1 khung hình) ========== */
+const STAR_FIELD = Array.from({length:110},()=>({
+  x:Math.random()*1024, y:Math.random()*576,
+  r:Math.random()*1.6+0.4, s:Math.random()*0.8+0.3
+}));
+
+function drawScreen(){
+  if(videoTex) return;
+  // Sử dụng thời gian thực toàn cục để mọi trình duyệt nhìn thấy khung hình chiếu khớp nhau 100%
+  const t = (Date.now() % 3600000) * 0.001;
+  const W = 1024, H = 576;
+  const activeMovie = state.ticket ? state.ticket.movie : MOVIES[state.currentHallIdx % MOVIES.length];
+  const c1 = activeMovie ? activeMovie.c1 : "#e50914";
+  const c2 = activeMovie ? activeMovie.c2 : "#1a1a3a";
+
+  screenCtx.fillStyle = c2; screenCtx.fillRect(0,0,W,H);
+  const g = screenCtx.createRadialGradient(W/2+Math.sin(t*0.4)*250, H/2+Math.cos(t*0.31)*110, 30, W/2, H/2, 640);
+  g.addColorStop(0,c1); g.addColorStop(1,c2);
+  screenCtx.globalAlpha = 0.92; screenCtx.fillStyle = g; screenCtx.fillRect(0,0,W,H); screenCtx.globalAlpha = 1;
+
+  screenCtx.fillStyle = "#ffffff";
+  STAR_FIELD.forEach(st => {
+    screenCtx.globalAlpha = 0.35 + 0.65*Math.abs(Math.sin(t*st.s+st.x));
+    screenCtx.beginPath(); screenCtx.arc(st.x, st.y, st.r, 0, Math.PI*2); screenCtx.fill();
+  });
+  screenCtx.globalAlpha = 1;
+
+  const px = W/2 + Math.cos(t*0.28)*300, py = H/2 + Math.sin(t*0.37)*95;
+  const rg = screenCtx.createRadialGradient(px-35, py-35, 8, px, py, 135);
+  rg.addColorStop(0,"rgba(255,255,255,0.95)"); rg.addColorStop(0.22,c1); rg.addColorStop(1,"rgba(0,0,0,0)");
+  screenCtx.fillStyle = rg; screenCtx.beginPath(); screenCtx.arc(px,py,135,0,Math.PI*2); screenCtx.fill();
+
+  const alpha = 0.82 + 0.18*Math.sin(t*1.6);
+  screenCtx.textAlign = "center"; screenCtx.globalAlpha = alpha;
+  screenCtx.fillStyle = "#ffffff";
+  screenCtx.shadowColor = c1; screenCtx.shadowBlur = 45;
+  screenCtx.font = "bold 70px Segoe UI, sans-serif";
+  screenCtx.fillText(activeMovie ? activeMovie.title : "GALAXY ROYAL", W/2, H/2+10);
+  screenCtx.shadowBlur = 0;
+  screenCtx.font = "600 22px Segoe UI, sans-serif";
+  screenCtx.fillStyle = "rgba(255,255,255,0.78)";
+  const hallTitle = state.ticket ? state.ticket.showtime.hall : HALLS[state.currentHallIdx].name;
+  const statusSub = state.isScreening ? "● ĐANG CHIẾU TRỰC TIẾP (LIVE SYNC)" : "○ SẴN SÀNG CHIẾU (LIVE SYNC)";
+  screenCtx.fillText(`${hallTitle}   |   ${statusSub}`, W/2, H/2+64);
+  screenCtx.globalAlpha = 1;
+
+  const vg = screenCtx.createRadialGradient(W/2, H/2, H*0.35, W/2, H/2, H*0.95);
+  vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,0.55)");
+  screenCtx.fillStyle = vg; screenCtx.fillRect(0,0,W,H);
+  screenTex.needsUpdate = true;
+
+  screenLight.color.set(c1);
+  if(state.isScreening){
+    screenLight.intensity = 2.6 + Math.sin(t*2.7)*0.45;
+  }
+}
+
+/* ========== MAIN LOOP ========== */
+const clock = new THREE.Clock();
+let lastScreenDraw = 0;
+let lastNetBroadcast = 0;
+let lastOnlineRefresh = 0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const now = performance.now();
+
+  if(!state.modalOpen && !player.sitting && !player.sitState && !player.standing){
+    const speed = (keys["ShiftLeft"]||keys["ShiftRight"]) ? CFG.runSpeed : CFG.walkSpeed;
+    let mx = 0, mz = 0;
+    if(keys["KeyW"]||keys["ArrowUp"]) mz -= 1;
+    if(keys["KeyS"]||keys["ArrowDown"]) mz += 1;
+    if(keys["KeyA"]||keys["ArrowLeft"]) mx -= 1;
+    if(keys["KeyD"]||keys["ArrowRight"]) mx += 1;
+    if(mx !== 0 || mz !== 0){
+      const len = Math.hypot(mx,mz); mx/=len; mz/=len;
+      const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+      const dx = (mx*cos + mz*sin) * speed * dt;
+      const dz = (-mx*sin + mz*cos) * speed * dt;
+      moveAndResolveCollisions(dx, dz);
+      player.walkPhase += speed * dt * 2;
+      syncActiveHallLights();
+      const loc = getLocationLabel();
+      if(loc !== lastLocationLabel) updateHUD();
+    } else {
+      moveAndResolveCollisions(0, 0);
+    }
+    updateCamera(dt);
+    updatePrompt();
+  } else {
+    updateCamera(dt);
+  }
+
+  // Nội suy chuyển động mượt cho toàn bộ nhân vật người chơi trực tuyến khác
+  for(const rp of remotePlayers.values()){
+    if(!rp.avatar) continue;
+    if(rp.isSimulated){
+      // Khán giả mẫu ngồi xem phim tự nhiên, thỉnh thoảng nghiêng đầu nhẹ
+      rp.avatar.headGroup.rotation.y = Math.sin(now * 0.0012 + hashCode(rp.id)) * 0.12;
+      continue;
+    }
+    rp.avatar.root.position.x += (rp.x - rp.avatar.root.position.x) * Math.min(1, dt * 10);
+    rp.avatar.root.position.y += (rp.y - rp.avatar.root.position.y) * Math.min(1, dt * 10);
+    rp.avatar.root.position.z += (rp.z - rp.avatar.root.position.z) * Math.min(1, dt * 10);
+    rp.avatar.root.rotation.y = rp.yaw;
+    rp.avatar.setPose(rp.sitting, now * 0.01);
+  }
+
+  // Phát sóng trạng thái nhân vật định kỳ (12 lần/giây)
+  if(now - lastNetBroadcast > 85){
+    broadcastMyState();
+    lastNetBroadcast = now;
+  }
+  if(now - lastOnlineRefresh > 1500){
+    renderOnlineList();
+    lastOnlineRefresh = now;
+  }
+
+  updateDoors(dt);
+  updateWayfindingGuide(now);
+  updateSitAnimation(dt);
+  updateSeatedSway(dt);
+
+  const dp = dustGeo.attributes.position;
+  for(let i=0;i<dustCount;i++){
+    dp.array[i*3] += dustVel[i].x;
+    dp.array[i*3+1] += dustVel[i].y;
+    dp.array[i*3+2] += dustVel[i].z;
+    if(dp.array[i*3+1] < 0.3) dp.array[i*3+1] = 8.5;
+    if(dp.array[i*3+1] > 8.5) dp.array[i*3+1] = 0.3;
+  }
+  dp.needsUpdate = true;
+
+  if(usherGroup){
+    const dx = player.pos.x - usherGroup.position.x;
+    const dz = player.pos.z - usherGroup.position.z;
+    usherGroup.rotation.y = Math.atan2(dx, dz);
+  }
+
+  if(now - lastScreenDraw > 62){
+    drawScreen();
+    lastScreenDraw = now;
+  }
+
+  renderer.render(scene, camera);
+}
+
+/* ========== START ========== */
+$("#start-btn").addEventListener("click", () => {
+  const customName = DOM.charNameInput.value.trim();
+  const customRoom = DOM.roomCodeInput.value.trim().toUpperCase();
+  if(customName) profile.name = customName;
+  if(customRoom) profile.roomCode = customRoom;
+
+  rebuildLocalAvatarMesh();
+  initRealtimeNetwork();
+  broadcastMyState();
+  renderOnlineList();
+
+  DOM.startScreen.classList.add("hide");
+  canvas.requestPointerLock();
+  beep(660,0.1);
+  toast(`Chào mừng ${profile.name} vào sảnh ${profile.roomCode}!`);
+});
+$("#stand-btn").addEventListener("click", standUp);
+
+initSimulatedOnlineViewers();
+rebuildLocalAvatarMesh();
+setScreeningLights(false, true);
+updateHUD();
+updateSeatVisuals();
+renderOnlineList();
+animate();
+</script>
+</body>
+</html>

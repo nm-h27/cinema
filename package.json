@@ -1,0 +1,13 @@
+{
+  "name": "galaxy-royal-cinema-3d-multiplayer",
+  "version": "1.0.0",
+  "description": "Server WebSocket đồng bộ thời gian thực cho rạp phim 3D Galaxy Royal Cinema (Chống trùng ghế & khai khống chỗ ngồi)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0"
+  }
+}
